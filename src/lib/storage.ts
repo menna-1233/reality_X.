@@ -1,4 +1,4 @@
-import type { Report } from "../types";
+import type { Report, ReportStatus } from "../types";
 
 const STORAGE_KEY = "urbaneye.reports";
 
@@ -35,5 +35,13 @@ export function getReport(id: string): Report | undefined {
 export function addReport(report: Report): void {
   const all = readAll();
   all.push(report);
+  writeAll(all);
+}
+
+export function setReportStatus(id: string, status: ReportStatus): void {
+  const all = readAll();
+  const report = all.find((r) => r.id === id);
+  if (!report) return;
+  report.status = status;
   writeAll(all);
 }

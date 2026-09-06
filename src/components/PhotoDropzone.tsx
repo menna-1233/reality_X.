@@ -18,7 +18,7 @@ export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
 
   if (imageDataUrl) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+      <div className="glass-panel relative overflow-hidden rounded-2xl border border-white/10">
         <img src={imageDataUrl} alt="الصورة المرفقة" className="h-56 w-full object-cover" />
         <button
           type="button"
@@ -36,11 +36,11 @@ export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="flex h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50 text-brand-700 transition hover:bg-brand-100"
+      className="glass-panel flex h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-400/30 text-brand-300 transition hover:bg-white/[0.08]"
     >
       <Camera size={32} />
       <span className="font-medium">اضغط لإضافة صورة المشكلة</span>
-      <span className="text-xs text-brand-500">JPG, PNG</span>
+      <span className="text-xs text-brand-400/70">JPG, PNG</span>
       <input
         ref={inputRef}
         type="file"

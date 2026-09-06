@@ -56,6 +56,7 @@ export function ReportPage() {
         location,
         createdAt: new Date().toISOString(),
         analysis,
+        status: "open",
       };
       addReport(report);
       setLastReport(report);
@@ -77,12 +78,12 @@ export function ReportPage() {
   if (status === "done" && lastReport) {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
-        <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
-          <p className="flex items-center gap-2 text-sm font-semibold text-brand-700">
+        <div className="glass-panel rounded-2xl border border-brand-400/20 p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold text-brand-300">
             <Sparkles size={16} /> نتيجة تحليل الـ AI (نتيجة تجريبية للعرض)
           </p>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="glass-panel overflow-hidden rounded-2xl border border-white/10">
           <img
             src={lastReport.imageDataUrl}
             alt="صورة البلاغ"
@@ -96,7 +97,7 @@ export function ReportPage() {
               label="نسبة الثقة"
               value={`${Math.round(lastReport.analysis.confidence * 100)}%`}
             />
-            <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            <p className="rounded-xl bg-white/5 p-3 text-sm text-slate-300">
               {lastReport.analysis.summary}
             </p>
           </div>
@@ -104,13 +105,13 @@ export function ReportPage() {
         <div className="flex gap-3">
           <button
             onClick={reset}
-            className="flex-1 rounded-xl border border-brand-300 py-2.5 font-medium text-brand-700"
+            className="flex-1 rounded-xl border border-brand-400/30 py-2.5 font-medium text-brand-300"
           >
             بلاغ جديد
           </button>
           <button
             onClick={() => navigate("/feed")}
-            className="flex-1 rounded-xl bg-brand-600 py-2.5 font-medium text-white"
+            className="flex-1 rounded-xl bg-brand-500 py-2.5 font-medium text-ink-950"
           >
             عرض كل البلاغات
           </button>
@@ -122,8 +123,8 @@ export function ReportPage() {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">بلّغ عن مشكلة</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-white">بلّغ عن مشكلة</h1>
+        <p className="text-sm text-slate-400">
           صوّر المشكلة وسيقوم الـ AI بتحديد نوعها وخطورتها والجهة المسؤولة تلقائيًا.
         </p>
       </div>
@@ -131,30 +132,30 @@ export function ReportPage() {
       <PhotoDropzone imageDataUrl={imageDataUrl} onChange={setImageDataUrl} />
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-700">وصف المشكلة</label>
+        <label className="text-sm font-medium text-slate-300">وصف المشكلة</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder="مثال: في تسريب مياه جنب المدخل الرئيسي"
-          className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          className="glass-panel w-full rounded-xl border border-white/10 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-700">الموقع</label>
+        <label className="text-sm font-medium text-slate-300">الموقع</label>
         <div className="flex gap-2">
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="مثال: عمارة 5 - الحديقة الخلفية"
-            className="flex-1 rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="glass-panel flex-1 rounded-xl border border-white/10 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
           />
           <button
             type="button"
             onClick={useMyLocation}
             disabled={locating}
-            className="flex items-center gap-1 rounded-xl border border-brand-300 px-3 text-sm font-medium text-brand-700 disabled:opacity-60"
+            className="flex items-center gap-1 rounded-xl border border-brand-400/30 px-3 text-sm font-medium text-brand-300 disabled:opacity-60"
           >
             {locating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
             موقعي
@@ -167,7 +168,7 @@ export function ReportPage() {
       <button
         type="submit"
         disabled={status === "analyzing"}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 font-semibold text-white transition disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-ink-950 transition disabled:opacity-70"
       >
         {status === "analyzing" ? (
           <>
@@ -194,7 +195,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-800">{value}</span>
+      <span className="font-semibold text-slate-100">{value}</span>
     </div>
   );
 }
