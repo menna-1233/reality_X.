@@ -123,9 +123,10 @@ export function DashboardPage() {
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 15);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 20,
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+      className: "map-tiles-dark",
     }).addTo(map);
     markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -260,7 +261,7 @@ export function DashboardPage() {
         </div>
 
         {/* map */}
-        <div className="glass-panel relative min-h-[420px] overflow-hidden rounded-2xl border border-white/10 lg:order-2">
+        <div className="glass-panel relative min-h-[420px] overflow-hidden rounded-3xl border border-white/10 lg:order-2">
           <div ref={mapElRef} className="h-full min-h-[420px] w-full" />
           {unmappedCount > 0 && (
             <div className="glass-panel pointer-events-none absolute bottom-3 start-3 flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] text-slate-300">

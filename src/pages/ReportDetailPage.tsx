@@ -51,7 +51,7 @@ export function ReportDetailPage() {
         <ArrowRight size={16} /> رجوع لكل البلاغات
       </Link>
 
-      <div className="glass-panel overflow-hidden rounded-2xl border border-white/10">
+      <div className="glass-panel overflow-hidden rounded-3xl border border-white/10">
         <img
           src={report.imageDataUrl}
           alt={PROBLEM_TYPE_LABELS[report.analysis.problemType]}
@@ -103,7 +103,7 @@ export function ReportDetailPage() {
         </div>
       </div>
 
-      <div className="glass-panel rounded-2xl border border-white/10 p-4">
+      <div className="glass-panel rounded-3xl border border-white/10 p-4">
         <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
           مسار الحالة
         </p>

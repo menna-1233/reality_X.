@@ -49,7 +49,7 @@ export function FeedPage() {
       </div>
 
       {reports.length > 0 && (
-        <div className="glass-panel flex items-center justify-between rounded-2xl border border-white/10 px-4 py-2.5 text-xs">
+        <div className="glass-panel flex items-center justify-between rounded-3xl border border-white/10 px-4 py-2.5 text-xs">
           <span className="text-slate-300">
             <b className="font-mono text-sm text-white">{openCount}</b> بلاغ مفتوح
           </span>
@@ -84,12 +84,12 @@ export function FeedPage() {
       )}
 
       {reports.length === 0 ? (
-        <div className="glass-panel flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/15 py-16 text-slate-500">
+        <div className="glass-panel flex flex-col items-center gap-2 rounded-3xl border border-dashed border-white/15 py-16 text-slate-500">
           <Inbox size={32} />
           <p>لسه مفيش بلاغات، جرّب ترسل بلاغ جديد</p>
         </div>
       ) : visible.length === 0 ? (
-        <div className="glass-panel flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/15 py-16 text-slate-500">
+        <div className="glass-panel flex flex-col items-center gap-2 rounded-3xl border border-dashed border-white/15 py-16 text-slate-500">
           <p>مفيش بلاغات بالفلتر ده دلوقتي</p>
         </div>
       ) : (

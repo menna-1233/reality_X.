@@ -78,12 +78,12 @@ export function ReportPage() {
   if (status === "done" && lastReport) {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
-        <div className="glass-panel rounded-2xl border border-brand-400/20 p-4">
+        <div className="glass-panel rounded-3xl border border-brand-400/20 p-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-brand-300">
             <Sparkles size={16} /> نتيجة تحليل الـ AI (نتيجة تجريبية للعرض)
           </p>
         </div>
-        <div className="glass-panel overflow-hidden rounded-2xl border border-white/10">
+        <div className="glass-panel overflow-hidden rounded-3xl border border-white/10">
           <img
             src={lastReport.imageDataUrl}
             alt="صورة البلاغ"
