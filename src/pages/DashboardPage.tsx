@@ -22,7 +22,6 @@ import { groupIntoIncidents } from "../lib/incidents";
 import { listRecentEvents, listReports } from "../lib/storage";
 import type { Report, Severity } from "../types";
 import { EVENT_LABELS, PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
-import { useGlassPointer } from "../hooks/useGlassPointer";
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   low: "#22c55e",
@@ -51,12 +50,6 @@ export function DashboardPage() {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
-  const resolutionPanelRef = useGlassPointer<HTMLDivElement>();
-  const agePanelRef = useGlassPointer<HTMLDivElement>();
-  const activityPanelRef = useGlassPointer<HTMLDivElement>();
-  const mapPanelRef = useGlassPointer<HTMLDivElement>();
-  const criticalPanelRef = useGlassPointer<HTMLDivElement>();
-  const byTypePanelRef = useGlassPointer<HTMLDivElement>();
 
   useEffect(() => {
     listReports().then(setReports).catch(() => setReports([]));
@@ -250,7 +243,7 @@ export function DashboardPage() {
               <StatTile label="تم حلها" value={resolvedCount} />
             </div>
 
-            <div ref={resolutionPanelRef} className="glass-surface relative flex items-center gap-3 rounded-xl border border-white/8 p-3.5">
+            <div className="surface-panel flex items-center gap-3 rounded-xl border border-white/8 p-3.5">
               <Gauge pct={resolutionRate} color="var(--color-accent-500)" />
               <div className="min-w-0">
                 <p className="text-[11px] text-slate-400">نسبة الحل</p>
@@ -258,7 +251,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div ref={agePanelRef} className="glass-surface relative rounded-xl border border-white/8 p-3.5">
+            <div className="surface-panel rounded-xl border border-white/8 p-3.5">
               <p className="text-[11px] text-slate-400">متوسط عمر البلاغات المفتوحة</p>
               <p className="mt-1 font-mono text-2xl font-bold text-white">{avgOpenAgeLabel}</p>
               <div className="mt-2">
@@ -267,17 +260,14 @@ export function DashboardPage() {
               <p className="mt-1 text-[10px] text-slate-500">بلاغات جديدة آخر ٧ أيام</p>
             </div>
 
-            <div ref={activityPanelRef} className="glass-surface relative space-y-1 rounded-xl border border-white/8 p-3">
+            <div className="surface-panel space-y-1 rounded-xl border border-white/8 p-3">
               <p className="mb-1 px-1 text-[11px] font-semibold text-slate-400">النشاط الأخير</p>
               <ActivityFeed items={activityItems} />
             </div>
           </div>
 
           {/* map */}
-          <div
-            ref={mapPanelRef}
-            className="glass-surface relative min-h-[420px] overflow-hidden rounded-xl border border-white/8 lg:order-2"
-          >
+          <div className="surface-panel relative min-h-[420px] overflow-hidden rounded-xl border border-white/8 lg:order-2">
             <div ref={mapElRef} className="h-full min-h-[420px] w-full" />
             {unmappedCount > 0 && (
               <div className="surface-panel pointer-events-none absolute bottom-3 start-3 flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] text-slate-300">
@@ -289,7 +279,7 @@ export function DashboardPage() {
 
           {/* right rail */}
           <div className="space-y-3 lg:order-3">
-            <div ref={criticalPanelRef} className="glass-surface relative rounded-xl border border-severity-critical/20 p-3.5">
+            <div className="surface-panel rounded-xl border border-severity-critical/20 p-3.5">
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
                 <AlertTriangle size={13} className="text-severity-critical" />
                 بلاغات حرجة مفتوحة ({criticalAlerts.length})
@@ -316,7 +306,7 @@ export function DashboardPage() {
               )}
             </div>
 
-            <div ref={byTypePanelRef} className="glass-surface relative rounded-xl border border-white/8 p-3.5">
+            <div className="surface-panel rounded-xl border border-white/8 p-3.5">
               <p className="mb-2 text-[11px] font-semibold text-slate-400">البلاغات حسب نوع المشكلة</p>
               {byType.length === 0 ? (
                 <EmptyState icon={Inbox} title="لا توجد بيانات" />

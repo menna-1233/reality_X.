@@ -1,6 +1,5 @@
 import { Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useGlassPointer } from "../hooks/useGlassPointer";
 import type { Report, Severity } from "../types";
 import { PROBLEM_TYPE_LABELS } from "../types";
 import { SeverityBadge } from "./SeverityBadge";
@@ -25,13 +24,10 @@ function relativeTime(iso: string): string {
 }
 
 export function ReportCard({ report, linkedCount = 0 }: { report: Report; linkedCount?: number }) {
-  const cardRef = useGlassPointer<HTMLAnchorElement>();
-
   return (
     <Link
-      ref={cardRef}
       to={`/reports/${report.id}`}
-      className={`glass-surface relative flex gap-3 overflow-hidden rounded-xl border border-white/8 p-3 pe-4 transition
+      className={`surface-panel relative flex gap-3 overflow-hidden rounded-xl border border-white/8 p-3 pe-4 transition
         before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full
         hover:border-accent-400/40 hover:bg-white/[0.04]
         ${STRIPE[report.analysis.severity]}`}
