@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getAdminSession, onAdminSessionChange } from "../lib/adminAuth";
+import { useAdminSession } from "../lib/useAdminSession";
 
 /**
  * Gates the admin-only screens (dashboard, findings). Citizens are never
@@ -8,21 +7,7 @@ import { getAdminSession, onAdminSessionChange } from "../lib/adminAuth";
  */
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [status, setStatus] = useState<"checking" | "in" | "out">("checking");
-
-  useEffect(() => {
-    let active = true;
-    getAdminSession().then((session) => {
-      if (active) setStatus(session ? "in" : "out");
-    });
-    const unsubscribe = onAdminSessionChange((session) => {
-      if (active) setStatus(session ? "in" : "out");
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+  const status = useAdminSession();
 
   if (status === "checking") {
     return <div className="flex min-h-screen items-center justify-center text-slate-400">...جارٍ التحقق</div>;

@@ -4,6 +4,7 @@ import {
   HelpCircle,
   Inbox,
   LayoutDashboard,
+  LogIn,
   LogOut,
   Menu,
   Send,
@@ -13,10 +14,17 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { signOutAdmin } from "../lib/adminAuth";
+import { useAdminSession } from "../lib/useAdminSession";
 
-const NAV = [
+// Public — every visitor (citizen or admin) sees these, no login needed.
+const PUBLIC_NAV = [
   { to: "/", end: true, icon: Send, label: "بلّغ" },
   { to: "/feed", end: false, icon: Inbox, label: "البلاغات" },
+];
+
+// Admin-only — shown in the nav only once an admin session is confirmed.
+// The routes themselves are still gated by RequireAdmin regardless.
+const ADMIN_NAV = [
   { to: "/dashboard", end: false, icon: LayoutDashboard, label: "نظرة عامة" },
   { to: "/findings", end: false, icon: ClipboardList, label: "إدارة البلاغات" },
 ];
@@ -31,6 +39,8 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
+  const adminStatus = useAdminSession();
+  const isAdmin = adminStatus === "in";
 
   async function handleSignOut() {
     await signOutAdmin();
@@ -60,7 +70,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </NavLink>
 
       <nav className="flex flex-1 flex-col gap-0.5">
-        {NAV.map((item) => (
+        {PUBLIC_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -72,6 +82,26 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             {item.label}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <>
+            <p className="mt-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              الإدارة
+            </p>
+            {ADMIN_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={onNavigate}
+                className={navLinkClass}
+              >
+                <item.icon size={16} />
+                {item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="space-y-2 border-t border-white/8 pt-3">
@@ -82,14 +112,25 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <HelpCircle size={16} />
           المساعدة والتوثيق
         </a>
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
-        >
-          <LogOut size={16} />
-          تسجيل خروج (الإدارة)
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+          >
+            <LogOut size={16} />
+            تسجيل خروج (الإدارة)
+          </button>
+        ) : (
+          <NavLink
+            to="/admin/login"
+            onClick={onNavigate}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+          >
+            <LogIn size={16} />
+            دخول الإدارة
+          </NavLink>
+        )}
       </div>
     </>
   );
