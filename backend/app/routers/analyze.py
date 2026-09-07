@@ -2,8 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Form, UploadFile
 
-from ..ollama_ai import analyze as run_ai
 from ..schemas import Analysis
+from ..settings import settings
 
 router = APIRouter(tags=["analyze"])
 
@@ -15,11 +15,26 @@ async def analyze_report(
 ) -> Analysis:
     """Classify a reported issue.
 
-    Backed by an open-source model served locally through Ollama (see
-    app/ollama_ai.py) when `AI_BACKEND=ollama`, with the image included so
-    the model can classify from the photo itself, not just the text.
-    Falls back to a keyword heuristic (app/mock_ai.py) if Ollama is
-    unavailable or `AI_BACKEND=mock`.
+    Backend is selected via ``AI_BACKEND`` environment variable:
+
+    * ``mock``   — keyword heuristic, always works, no setup (default)
+    * ``ollama`` — local open-source model via Ollama (needs Ollama running)
+    * ``groq``   — free cloud inference via Groq API (needs ``GROQ_API_KEY``)
+
+    Any backend that is unreachable or misconfigured falls back to mock
+    automatically, so the app never breaks.
     """
     image_bytes = await image.read() if image else None
-    return run_ai(description, image_bytes)
+    backend = settings.ai_backend.lower()
+
+    if backend == "groq":
+        from ..groq_ai import analyze
+        return analyze(description)
+
+    if backend == "ollama":
+        from ..ollama_ai import analyze
+        return analyze(description, image_bytes)
+
+    # Default: mock keyword heuristic
+    from ..mock_ai import analyze
+    return analyze(description)
