@@ -17,8 +17,32 @@ _KEYWORD_MAP: list[tuple[list[str], ProblemType]] = [
     (["مياه", "تسريب", "مايه", "water", "leak"], "water_leak"),
     (["عمود", "نور", "كهرب", "light", "lamp"], "broken_light"),
     (["حفر", "طريق", "pothole", "hole"], "pothole"),
+    (["حريق", "نار", "fire", "burn"], "accident"),
     (["حادث", "اصطدام", "accident", "crash"], "accident"),
 ]
+
+# Deterministic baseline severity per problem type. This is the ranking the
+# AI's decision must respect — e.g. a fire ("accident") must never come out
+# less severe than a burst pipe ("water_leak"). Keyword hits in the
+# description can only escalate this baseline, never override it downward,
+# and severity is never chosen at random.
+_BASE_SEVERITY: dict[ProblemType, Severity] = {
+    "pothole": "medium",
+    "garbage": "low",
+    "water_leak": "medium",
+    "broken_light": "low",
+    "accident": "critical",
+    "other": "medium",
+}
+
+_SEVERITY_ORDER: list[Severity] = ["low", "medium", "high", "critical"]
+
+_ESCALATION_KEYWORDS = ["خطر", "عاجل", "شديد", "urgent", "danger", "severe"]
+
+
+def _escalate(severity: Severity, steps: int = 1) -> Severity:
+    index = min(_SEVERITY_ORDER.index(severity) + steps, len(_SEVERITY_ORDER) - 1)
+    return _SEVERITY_ORDER[index]
 
 _DEPARTMENTS: dict[ProblemType, str] = {
     "pothole": "إدارة الصيانة والطرق",
@@ -49,10 +73,10 @@ def _detect_problem_type(description: str) -> ProblemType:
 
 def _detect_severity(problem_type: ProblemType, description: str) -> Severity:
     text = (description or "").lower()
-    if problem_type == "accident" or "خطر" in text or "urgent" in text:
-        return "critical"
-    weighted: list[Severity] = ["low", "medium", "medium", "medium", "high"]
-    return random.choice(weighted)
+    severity = _BASE_SEVERITY[problem_type]
+    if any(keyword in text for keyword in _ESCALATION_KEYWORDS):
+        severity = _escalate(severity)
+    return severity
 
 
 def analyze(description: str) -> Analysis:
@@ -64,10 +88,21 @@ def analyze(description: str) -> Analysis:
     elif severity == "high":
         urgency = " الحالة ذات أولوية عالية."
 
+    # No description means the classification relied on the type baseline
+    # only, with nothing to corroborate it — report that as lower
+    # confidence rather than pretending the guess is as solid as a
+    # described report, so low-confidence "other" reports get routed to
+    # general review instead of a specific department by mistake.
+    has_description = bool((description or "").strip())
+    confidence = round(
+        random.uniform(0.82, 0.97) if has_description else random.uniform(0.55, 0.72),
+        2,
+    )
+
     return Analysis(
         problem_type=problem_type,
         severity=severity,
         department=_DEPARTMENTS[problem_type],
-        confidence=round(random.uniform(0.72, 0.97), 2),
+        confidence=confidence,
         summary=_SUMMARIES[problem_type] + urgency,
     )
