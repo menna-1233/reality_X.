@@ -96,12 +96,15 @@ body {
    header, the sidebar, dropdowns, modal scrims/panels — never for content
    (report cards, dashboard panels, tables, kanban, form inputs), which
    stay on .surface-panel regardless of how "important" they look. */
-/* Two background layers on purpose: backdrop-filter alone reads as barely
-   more than "slightly lighter panel" when there's nothing colorful behind
-   it to blur (a flat dark page, most of this app). The linear-gradient
-   sheen is painted ON the glass itself — bright top edge, dimmer belly,
-   a second lift near the bottom — so every glass surface reads as glass
-   on sight, independent of whatever happens to be behind it. */
+/* Previous version painted a stylized top-bright/bottom-lift gradient onto
+   the surface — closer to a glossy web-2.0 button than real Liquid Glass.
+   Apple's regular material actually does the opposite: it stays out of the
+   way, adjusting blur/luminosity just enough to keep foreground legible
+   while the *content behind it* (this app's ink background + its warm
+   radial glow, or whatever's scrolling under the header) does the visual
+   work. So this leans almost entirely on backdrop-filter — real
+   translucency — plus a hairline border and one soft top highlight,
+   instead of a designed-looking sheen. */
 .glass-surface {
   /* NOT `position: relative` here on purpose: this is plain unlayered CSS,
      which in Tailwind v4's cascade always beats the `@layer utilities`
@@ -112,21 +115,19 @@ body {
      and scrolled away with the page instead of pinning). Every usage that
      doesn't already have its own positioned utility class (sticky/fixed/
      absolute/relative) must add `relative` itself. */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07) 100%),
-    linear-gradient(175deg, rgba(70, 58, 50, 0.55), rgba(28, 23, 20, 0.68));
-  backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: linear-gradient(175deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 0 32px rgba(255, 255, 255, 0.05),
-    0 12px 32px -12px rgba(0, 0, 0, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 8px 30px -10px rgba(0, 0, 0, 0.55);
 }
 
-/* single pseudo-element carries both the tracked glint and the rim
-   highlight — ::before is reserved for things like ReportCard's severity
-   stripe, so .glass-surface only ever claims ::after */
+/* single pseudo-element carries the tracked glint — ::before is reserved
+   for things like ReportCard's severity stripe, so .glass-surface only
+   ever claims ::after. Small, soft, and low-opacity on purpose: Apple's
+   own highlight is a thin glint along a curved edge, not a broad glow. */
 .glass-surface::after {
   content: "";
   position: absolute;
@@ -134,12 +135,10 @@ body {
   pointer-events: none;
   border-radius: inherit;
   background: radial-gradient(
-    500px circle at var(--glass-x, 25%) var(--glass-y, 0%),
-    rgba(255, 255, 255, 0.35),
-    rgba(255, 255, 255, 0.06) 45%,
+    320px circle at var(--glass-x, 25%) var(--glass-y, 0%),
+    rgba(255, 255, 255, 0.14),
     transparent 70%
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition: opacity 0.5s ease;
 }
 
