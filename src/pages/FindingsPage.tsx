@@ -5,6 +5,7 @@ import {
   Image as ImageIcon,
   Inbox,
   LayoutGrid,
+  Link2,
   RefreshCw,
   Search,
   Table2,
@@ -23,6 +24,7 @@ import type { FilterGroup } from "../components/FilterPanel";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { SlideOver } from "../components/SlideOver";
 import { StatusBadge } from "../components/StatusBadge";
+import { buildLinkedReportsLookup } from "../lib/incidents";
 import { listReports, setReportStatus } from "../lib/storage";
 import type { Report, ReportStatus, Severity } from "../types";
 import {
@@ -97,6 +99,8 @@ export function FindingsPage() {
     return g;
   }, [filtered]);
 
+  const linkedLookup = useMemo(() => buildLinkedReportsLookup(reports), [reports]);
+
   function openDetail(r: Report) {
     setSelected(r);
     setTab("summary");
@@ -154,11 +158,19 @@ export function FindingsPage() {
     {
       key: "type",
       label: "النوع",
-      render: (r) => (
-        <span className="text-sm font-medium text-slate-100">
-          {PROBLEM_TYPE_LABELS[r.analysis.problemType]}
-        </span>
-      ),
+      render: (r) => {
+        const linked = linkedLookup.get(r.id);
+        return (
+          <span className="flex items-center gap-1.5 text-sm font-medium text-slate-100">
+            {PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+            {linked && linked.length > 0 && (
+              <span className="flex items-center gap-0.5 rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
+                <Link2 size={9} />+{linked.length}
+              </span>
+            )}
+          </span>
+        );
+      },
     },
     { key: "severity", label: "الخطورة", render: (r) => <SeverityBadge severity={r.analysis.severity} /> },
     { key: "status", label: "الحالة", render: (r) => <StatusBadge status={r.status} /> },
@@ -305,8 +317,13 @@ export function FindingsPage() {
                           <SeverityBadge severity={r.analysis.severity} />
                           <span className="font-mono text-[10px] text-slate-600">#{r.id.slice(0, 5)}</span>
                         </div>
-                        <p className="mt-1.5 line-clamp-2 text-xs font-medium text-slate-100">
-                          {PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-100">
+                          <span className="line-clamp-2">{PROBLEM_TYPE_LABELS[r.analysis.problemType]}</span>
+                          {linkedLookup.has(r.id) && (
+                            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
+                              <Link2 size={9} />+{linkedLookup.get(r.id)!.length}
+                            </span>
+                          )}
                         </p>
                         <p className="mt-1 truncate text-[10px] text-slate-500">{r.location}</p>
                         <div className="mt-2 flex items-center justify-between">
@@ -397,6 +414,31 @@ export function FindingsPage() {
                     ))}
                   </div>
                 </div>
+
+                {(linkedLookup.get(selected.id)?.length ?? 0) > 0 && (
+                  <div className="space-y-2 border-t border-white/8 pt-3">
+                    <p className="flex items-center gap-1.5 text-[11px] font-semibold text-accent-400">
+                      <Link2 size={12} />
+                      الـ AI ربط البلاغ ده بـ {linkedLookup.get(selected.id)!.length} بلاغ تاني
+                    </p>
+                    {linkedLookup.get(selected.id)!.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => openDetail(r)}
+                        className="flex w-full items-center gap-2.5 rounded-lg border border-white/8 bg-white/[0.02] p-2 text-start transition hover:bg-white/[0.06]"
+                      >
+                        <img src={r.imageDataUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-slate-200">
+                            {r.description || PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                          </p>
+                          <p className="truncate text-[10px] text-slate-500">{relativeTime(r.createdAt)}</p>
+                        </div>
+                        <StatusBadge status={r.status} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

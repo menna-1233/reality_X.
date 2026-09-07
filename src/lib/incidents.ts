@@ -71,3 +71,21 @@ export function groupIntoIncidents(reports: Report[]): Incident[] {
     return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
   });
 }
+
+/** Every other report the AI linked to this one as the same real-world problem. */
+export function findLinkedReports(report: Report, allReports: Report[]): Report[] {
+  const key = incidentKey(report);
+  return allReports.filter((r) => r.id !== report.id && incidentKey(r) === key);
+}
+
+/** reportId -> every OTHER report grouped with it (empty array if it's on its own). */
+export function buildLinkedReportsLookup(reports: Report[]): Map<string, Report[]> {
+  const map = new Map<string, Report[]>();
+  for (const incident of groupIntoIncidents(reports)) {
+    if (incident.reports.length < 2) continue;
+    for (const r of incident.reports) {
+      map.set(r.id, incident.reports.filter((other) => other.id !== r.id));
+    }
+  }
+  return map;
+}

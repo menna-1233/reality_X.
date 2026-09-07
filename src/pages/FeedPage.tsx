@@ -5,6 +5,7 @@ import { AppShell } from "../components/AppShell";
 import { Chip } from "../components/Chip";
 import { EmptyState } from "../components/EmptyState";
 import { ReportCard } from "../components/ReportCard";
+import { buildLinkedReportsLookup } from "../lib/incidents";
 import { listReports } from "../lib/storage";
 import type { Report, Severity } from "../types";
 import { SEVERITY_LABELS } from "../types";
@@ -43,6 +44,8 @@ export function FeedPage() {
 
   const visible =
     filter === "all" ? reports : reports.filter((r) => r.analysis.severity === filter);
+
+  const linkedLookup = useMemo(() => buildLinkedReportsLookup(reports), [reports]);
 
   return (
     <AppShell title="كل البلاغات" breadcrumbs={["البلاغات"]}>
@@ -95,7 +98,7 @@ export function FeedPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: Math.min(i, 8) * 0.04 }}
               >
-                <ReportCard report={report} />
+                <ReportCard report={report} linkedCount={linkedLookup.get(report.id)?.length ?? 0} />
               </motion.div>
             ))}
           </div>

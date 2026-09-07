@@ -1,12 +1,24 @@
-import { MapPin } from "lucide-react";
+import { Link2, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { StatusBadge } from "../components/StatusBadge";
-import { getReport } from "../lib/storage";
+import { findLinkedReports } from "../lib/incidents";
+import { getReport, listReports } from "../lib/storage";
 import { PROBLEM_TYPE_LABELS } from "../types";
 import type { Report, ReportStatus } from "../types";
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "الآن";
+  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `منذ ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  return `منذ ${days} يوم`;
+}
 
 const TRAIL: { key: ReportStatus; label: string }[] = [
   { key: "open", label: "تم الإبلاغ" },
@@ -47,6 +59,7 @@ export function ReportDetailPage() {
 
   const confidencePct = Math.round(report.analysis.confidence * 100);
   const stepIndex = statusStepIndex(report.status);
+  const linkedReports = findLinkedReports(report, listReports());
 
   return (
     <AppShell
@@ -148,6 +161,33 @@ export function ReportDetailPage() {
             </div>
           )}
         </div>
+
+        {linkedReports.length > 0 && (
+          <div className="surface-panel rounded-xl border border-accent-400/20 p-4">
+            <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-accent-400">
+              <Link2 size={13} />
+              الـ AI ربط البلاغ ده بـ {linkedReports.length} بلاغ تاني عن نفس المشكلة
+            </p>
+            <div className="space-y-2">
+              {linkedReports.map((r) => (
+                <Link
+                  key={r.id}
+                  to={`/reports/${r.id}`}
+                  className="flex items-center gap-2.5 rounded-lg border border-white/8 bg-white/[0.02] p-2 transition hover:bg-white/[0.06]"
+                >
+                  <img src={r.imageDataUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-slate-200">
+                      {r.description || PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                    </p>
+                    <p className="truncate text-[10px] text-slate-500">{relativeTime(r.createdAt)}</p>
+                  </div>
+                  <StatusBadge status={r.status} />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

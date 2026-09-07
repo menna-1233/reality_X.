@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Menu,
   Send,
-  Siren,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -18,7 +17,6 @@ const NAV = [
   { to: "/feed", end: false, icon: Inbox, label: "البلاغات" },
   { to: "/dashboard", end: false, icon: LayoutDashboard, label: "نظرة عامة" },
   { to: "/findings", end: false, icon: ClipboardList, label: "إدارة البلاغات" },
-  { to: "/incidents", end: false, icon: Siren, label: "الحوادث" },
 ];
 
 function navLinkClass({ isActive }: { isActive: boolean }) {

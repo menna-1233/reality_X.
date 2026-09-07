@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Report, Severity } from "../types";
 import { PROBLEM_TYPE_LABELS } from "../types";
@@ -22,7 +23,7 @@ function relativeTime(iso: string): string {
   return `منذ ${days} يوم`;
 }
 
-export function ReportCard({ report }: { report: Report }) {
+export function ReportCard({ report, linkedCount = 0 }: { report: Report; linkedCount?: number }) {
   return (
     <Link
       to={`/reports/${report.id}`}
@@ -38,8 +39,13 @@ export function ReportCard({ report }: { report: Report }) {
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate font-semibold text-slate-100">
-            {PROBLEM_TYPE_LABELS[report.analysis.problemType]}
+          <p className="flex min-w-0 items-center gap-1.5 truncate font-semibold text-slate-100">
+            <span className="truncate">{PROBLEM_TYPE_LABELS[report.analysis.problemType]}</span>
+            {linkedCount > 0 && (
+              <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
+                <Link2 size={9} />+{linkedCount}
+              </span>
+            )}
           </p>
           <span className="shrink-0 font-mono text-[11px] text-slate-500">
             {relativeTime(report.createdAt)}

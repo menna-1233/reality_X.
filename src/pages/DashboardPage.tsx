@@ -74,8 +74,8 @@ export function DashboardPage() {
   const criticalCount = filtered.filter((r) => r.analysis.severity === "critical").length;
   const resolvedCount = filtered.filter((r) => r.status === "resolved").length;
   const resolutionRate = total > 0 ? (resolvedCount / total) * 100 : 0;
-  const activeIncidentCount = useMemo(
-    () => groupIntoIncidents(filtered).filter((i) => i.status === "open" || i.status === "in_progress").length,
+  const linkedGroupsCount = useMemo(
+    () => groupIntoIncidents(filtered).filter((i) => i.reports.length > 1).length,
     [filtered],
   );
 
@@ -238,7 +238,7 @@ export function DashboardPage() {
           <div className="space-y-3 lg:order-1">
             <div className="grid grid-cols-2 gap-2">
               <StatTile label="إجمالي البلاغات" value={total} delta={trendDelta} deltaGoodDirection="down" />
-              <StatTile label="حوادث نشطة" value={activeIncidentCount} />
+              <StatTile label="بلاغات مرتبطة" value={linkedGroupsCount} />
               <StatTile label="حرجة" value={criticalCount} />
               <StatTile label="تم حلها" value={resolvedCount} />
             </div>
