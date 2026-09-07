@@ -2,34 +2,45 @@
 
 @theme {
   --font-sans: "Cairo", "Tahoma", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-brand-50: #eefbff;
-  --color-brand-100: #d6f4ff;
-  --color-brand-200: #b0e9ff;
-  --color-brand-300: #79d9ff;
-  --color-brand-400: #3cc0ff;
-  --color-brand-500: #12a2f0;
-  --color-brand-600: #0781cc;
-  --color-brand-700: #0867a5;
-  --color-brand-800: #0d5789;
-  --color-brand-900: #114972;
+  /* CY·FOCUS-inspired accent — reserved for actions/active state, never severity */
+  --color-accent-400: #f97a56;
+  --color-accent-500: #f0552a;
+  --color-accent-600: #d8431f;
+  --color-accent-700: #b23417;
 
+  /* warm near-black ink ramp */
+  --color-ink-950: #0b0908;
+  --color-ink-900: #14110f;
+  --color-ink-850: #1a1613;
+  --color-ink-800: #201b17;
+  --color-ink-700: #2b241e;
+  --color-ink-600: #3a322a;
+
+  /* severity: red / amber / yellow / green — never orange, that's the accent */
   --color-severity-low: #22c55e;
   --color-severity-medium: #eab308;
-  --color-severity-high: #f97316;
+  --color-severity-high: #f59e0b;
   --color-severity-critical: #ef4444;
 
-  /* dark "ops" surface system, inspired by the Vexto dashboard reference */
-  --color-ink-950: #05070a;
-  --color-ink-900: #0b0f16;
-  --color-ink-800: #121824;
-  --color-ink-700: #1b2333;
-  --color-ink-600: #2a3547;
-
+  /* status: distinct hue family from severity so the two badges never blur together */
   --color-status-open: #3cc0ff;
-  --color-status-progress: #eab308;
+  --color-status-progress: #818cf8;
   --color-status-resolved: #22c55e;
   --color-status-closed: #6b7787;
+
+  /* legacy brand-* kept as an alias of the new accent so any leftover usage stays coherent */
+  --color-brand-50: #fdf1ec;
+  --color-brand-100: #fbe1d5;
+  --color-brand-200: #f6c1a9;
+  --color-brand-300: #f9a377;
+  --color-brand-400: #f97a56;
+  --color-brand-500: #f0552a;
+  --color-brand-600: #d8431f;
+  --color-brand-700: #b23417;
+  --color-brand-800: #8a2812;
+  --color-brand-900: #631c0c;
 }
 
 html {
@@ -40,21 +51,37 @@ body {
   margin: 0;
   background: var(--color-ink-950);
   background-image:
-    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(60, 192, 255, 0.10), transparent),
-    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(34, 197, 94, 0.06), transparent);
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(240, 85, 42, 0.10), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(240, 85, 42, 0.05), transparent);
   background-attachment: fixed;
+}
+
+/* solid raised card — the reference's actual surface, not a blurred pane */
+.surface-panel {
+  background: linear-gradient(175deg, var(--color-ink-800), var(--color-ink-850));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* frosted overlay — reserved for things that float ABOVE content (slide-over, dropdowns) */
+.glass-overlay {
+  background: rgba(20, 17, 15, 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 60px -12px rgba(0, 0, 0, 0.65);
 }
 
 .map-tiles-dark {
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.6);
 }
 
-.glass-panel {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 60%);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 12px 40px -8px rgba(0, 0, 0, 0.45);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

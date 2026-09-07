@@ -1,17 +1,22 @@
 import { Inbox } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
+import { AppShell } from "../components/AppShell";
+import { Chip } from "../components/Chip";
+import { EmptyState } from "../components/EmptyState";
 import { ReportCard } from "../components/ReportCard";
 import { listReports } from "../lib/storage";
 import type { Report, Severity } from "../types";
 import { SEVERITY_LABELS } from "../types";
 
-const FILTERS: { key: Severity | "all"; label: string; dot?: string }[] = [
-  { key: "all", label: "الكل" },
-  { key: "critical", label: SEVERITY_LABELS.critical, dot: "bg-severity-critical" },
-  { key: "high", label: SEVERITY_LABELS.high, dot: "bg-severity-high" },
-  { key: "medium", label: SEVERITY_LABELS.medium, dot: "bg-severity-medium" },
-  { key: "low", label: SEVERITY_LABELS.low, dot: "bg-severity-low" },
-];
+const SEVERITY_COLOR: Record<Severity, string> = {
+  low: "#22c55e",
+  medium: "#eab308",
+  high: "#f59e0b",
+  critical: "#ef4444",
+};
+
+const FILTERS: (Severity | "all")[] = ["all", "critical", "high", "medium", "low"];
 
 export function FeedPage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -24,8 +29,8 @@ export function FeedPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: reports.length };
     for (const f of FILTERS) {
-      if (f.key === "all") continue;
-      c[f.key] = reports.filter((r) => r.analysis.severity === f.key).length;
+      if (f === "all") continue;
+      c[f] = reports.filter((r) => r.analysis.severity === f).length;
     }
     return c;
   }, [reports]);
@@ -40,65 +45,62 @@ export function FeedPage() {
     filter === "all" ? reports : reports.filter((r) => r.analysis.severity === filter);
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
-      <div>
-        <h1 className="text-xl font-bold text-white">كل البلاغات</h1>
+    <AppShell title="كل البلاغات" breadcrumbs={["البلاغات"]}>
+      <div className="mx-auto max-w-lg space-y-4">
         <p className="text-sm text-slate-400">
           كل بلاغ هنا اتحلل بالـ AI ووصل لإدارة الكمباوند تلقائيًا.
         </p>
-      </div>
 
-      {reports.length > 0 && (
-        <div className="glass-panel flex items-center justify-between rounded-3xl border border-white/10 px-4 py-2.5 text-xs">
-          <span className="text-slate-300">
-            <b className="font-mono text-sm text-white">{openCount}</b> بلاغ مفتوح
-          </span>
-          {criticalCount > 0 && (
-            <span className="flex items-center gap-1.5 text-slate-300">
-              <b className="font-mono text-sm text-severity-critical">{criticalCount}</b> حرجة
-              <span className="h-1.5 w-1.5 rounded-full bg-severity-critical" />
-              محتاجة رد اليوم
+        {reports.length > 0 && (
+          <div className="surface-panel flex items-center justify-between rounded-xl border border-white/8 px-4 py-2.5 text-xs">
+            <span className="text-slate-300">
+              <b className="font-mono text-sm text-white">{openCount}</b> بلاغ مفتوح
             </span>
-          )}
-        </div>
-      )}
+            {criticalCount > 0 && (
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <b className="font-mono text-sm text-severity-critical">{criticalCount}</b> حرجة
+                <span className="h-1.5 w-1.5 rounded-full bg-severity-critical" />
+                محتاجة رد اليوم
+              </span>
+            )}
+          </div>
+        )}
 
-      {reports.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                filter === f.key
-                  ? "bg-white text-ink-950"
-                  : "glass-panel border border-white/10 text-slate-300 hover:text-white"
-              }`}
-            >
-              {f.dot && <span className={`h-1.5 w-1.5 rounded-full ${f.dot}`} />}
-              {f.label}
-              <span className="opacity-60">· {counts[f.key] ?? 0}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        {reports.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {FILTERS.map((f) => (
+              <Chip
+                key={f}
+                active={filter === f}
+                onClick={() => setFilter(f)}
+                dot={f === "all" ? undefined : SEVERITY_COLOR[f]}
+                count={counts[f] ?? 0}
+              >
+                {f === "all" ? "الكل" : SEVERITY_LABELS[f]}
+              </Chip>
+            ))}
+          </div>
+        )}
 
-      {reports.length === 0 ? (
-        <div className="glass-panel flex flex-col items-center gap-2 rounded-3xl border border-dashed border-white/15 py-16 text-slate-500">
-          <Inbox size={32} />
-          <p>لسه مفيش بلاغات، جرّب ترسل بلاغ جديد</p>
-        </div>
-      ) : visible.length === 0 ? (
-        <div className="glass-panel flex flex-col items-center gap-2 rounded-3xl border border-dashed border-white/15 py-16 text-slate-500">
-          <p>مفيش بلاغات بالفلتر ده دلوقتي</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {visible.map((report) => (
-            <ReportCard key={report.id} report={report} />
-          ))}
-        </div>
-      )}
-    </div>
+        {reports.length === 0 ? (
+          <EmptyState icon={Inbox} title="لسه مفيش بلاغات، جرّب ترسل بلاغ جديد" />
+        ) : visible.length === 0 ? (
+          <EmptyState icon={Inbox} title="مفيش بلاغات بالفلتر ده دلوقتي" />
+        ) : (
+          <div className="space-y-3">
+            {visible.map((report, i) => (
+              <motion.div
+                key={report.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(i, 8) * 0.04 }}
+              >
+                <ReportCard report={report} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }

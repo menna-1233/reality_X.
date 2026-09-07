@@ -1,5 +1,7 @@
-import { addReport, listReports } from "./storage";
+import { addReport, listReports, setReportStatus } from "./storage";
 import type { Report } from "../types";
+
+type DemoReport = Omit<Report, "events">;
 
 function svgPlaceholder(bg: string, label: string): string {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='${bg}'/><text x='200' y='160' font-size='28' font-family='Cairo,Arial' fill='white' text-anchor='middle'>${label}</text></svg>`;
@@ -8,7 +10,7 @@ function svgPlaceholder(bg: string, label: string): string {
 
 const now = Date.now();
 
-const DEMO: Report[] = [
+const DEMO: DemoReport[] = [
   {
     id: "demo-1",
     imageDataUrl: svgPlaceholder("#dc2626", "تسريب"),
@@ -105,5 +107,8 @@ const DEMO: Report[] = [
 export function seedDemoDataIfEmpty(): void {
   if (!import.meta.env.DEV) return;
   if (listReports().length > 0) return;
-  for (const report of DEMO) addReport(report);
+  for (const report of DEMO) {
+    addReport(report);
+    if (report.status !== "open") setReportStatus(report.id, report.status);
+  }
 }

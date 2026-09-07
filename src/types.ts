@@ -2,6 +2,14 @@ export type Severity = "low" | "medium" | "high" | "critical";
 
 export type ReportStatus = "open" | "in_progress" | "resolved" | "closed";
 
+export type ReportEventKind = "created" | "analyzed" | "status_changed";
+
+export interface ReportEvent {
+  at: string; // ISO date
+  kind: ReportEventKind;
+  note?: string;
+}
+
 export type ProblemType =
   | "pothole"
   | "garbage"
@@ -26,6 +34,7 @@ export interface Report {
   createdAt: string; // ISO date
   analysis: Analysis;
   status: ReportStatus;
+  events: ReportEvent[];
 }
 
 export const PROBLEM_TYPE_LABELS: Record<ProblemType, string> = {
@@ -49,4 +58,10 @@ export const STATUS_LABELS: Record<ReportStatus, string> = {
   in_progress: "جاري التنفيذ",
   resolved: "تم الحل",
   closed: "مغلق",
+};
+
+export const EVENT_LABELS: Record<ReportEventKind, string> = {
+  created: "تم إنشاء البلاغ",
+  analyzed: "تم تحليله بالـ AI",
+  status_changed: "تغييرت الحالة",
 };

@@ -26,9 +26,9 @@ export function ReportCard({ report }: { report: Report }) {
   return (
     <Link
       to={`/reports/${report.id}`}
-      className={`glass-panel relative flex gap-3 overflow-hidden rounded-3xl border border-white/10 p-3 pe-4 transition
+      className={`surface-panel relative flex gap-3 overflow-hidden rounded-xl border border-white/8 p-3 pe-4 transition
         before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full
-        hover:border-brand-400/40 hover:bg-white/[0.08]
+        hover:border-accent-400/40 hover:bg-white/[0.04]
         ${STRIPE[report.analysis.severity]}`}
     >
       <img

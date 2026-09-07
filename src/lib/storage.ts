@@ -1,4 +1,4 @@
-import type { Report, ReportStatus } from "../types";
+import type { Report, ReportEvent, ReportStatus } from "../types";
 
 const STORAGE_KEY = "urbaneye.reports";
 
@@ -32,9 +32,13 @@ export function getReport(id: string): Report | undefined {
   return readAll().find((r) => r.id === id);
 }
 
-export function addReport(report: Report): void {
+export function addReport(report: Omit<Report, "events">): void {
   const all = readAll();
-  all.push(report);
+  const events: ReportEvent[] = [
+    { at: report.createdAt, kind: "created" },
+    { at: report.createdAt, kind: "analyzed" },
+  ];
+  all.push({ ...report, events });
   writeAll(all);
 }
 
@@ -43,5 +47,14 @@ export function setReportStatus(id: string, status: ReportStatus): void {
   const report = all.find((r) => r.id === id);
   if (!report) return;
   report.status = status;
+  report.events.push({ at: new Date().toISOString(), kind: "status_changed" });
   writeAll(all);
+}
+
+export function listRecentEvents(limit = 8): { report: Report; event: ReportEvent }[] {
+  const all = readAll();
+  return all
+    .flatMap((report) => report.events.map((event) => ({ report, event })))
+    .sort((a, b) => new Date(b.event.at).getTime() - new Date(a.event.at).getTime())
+    .slice(0, limit);
 }
