@@ -9,9 +9,11 @@ dashboard both consume.
 - **FastAPI** — HTTP API
 - **Supabase (Postgres)** — database, auth, storage (project already provisioned:
   `https://ccvdyifhquvcdixaqpat.supabase.co`)
-- **Mock AI** (`app/mock_ai.py`) — keyword-heuristic classifier, same logic as
-  the frontend's `mockAnalyze.ts`, until the real Claude Vision integration
-  replaces it (see comment in that file for the swap-in code)
+- **AI classifier** (`app/ollama_ai.py`) — real, free, open-source
+  vision+language model served locally via [Ollama](https://ollama.com)
+  (e.g. `qwen2.5vl` or `llava`), with a keyword-heuristic fallback
+  (`app/mock_ai.py`, same logic as the frontend's old `mockAnalyze.ts`) used
+  whenever `AI_BACKEND=mock` or Ollama is unreachable
 
 ## Setup
 
@@ -27,6 +29,23 @@ Then fill in `.env`:
 - `SUPABASE_SERVICE_ROLE_KEY` — grab it from the Supabase dashboard
   → this project → Project Settings → API → `service_role` secret key.
   **Never commit this or expose it to the frontend.**
+- `AI_BACKEND` — leave as `mock` to use the keyword heuristic (zero setup),
+  or set to `ollama` to use a real open-source model (see below).
+
+### Enabling the real AI (Ollama)
+
+1. Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (or see
+   https://ollama.com/download for macOS/Windows).
+2. Start it: `ollama serve` (usually already running as a service).
+3. Pull a multimodal model: `ollama pull qwen2.5vl` (or `ollama pull llava`).
+4. In `.env`, set `AI_BACKEND=ollama` (and `OLLAMA_MODEL` if you picked a
+   different model).
+
+That's it — `/analyze` and `POST /reports` will now send the report's image
+and description to the local model and parse its JSON response into the
+same `Analysis` shape the rest of the app already expects. No API key, no
+cost. If Ollama is down or returns something unparseable, the backend
+automatically falls back to the mock heuristic so a demo never breaks.
 
 Run it:
 
@@ -65,9 +84,12 @@ Row Level Security is enabled on every table (community-scoped reads/writes);
 the backend itself uses the `service_role` key and therefore bypasses RLS —
 it is the trusted boundary that enforces access rules in application code.
 
-## Swapping in the real AI
+## Swapping to a different model
 
-Replace the body of `analyze()` in `app/mock_ai.py` (or the `/analyze` route
-directly) with a call to Claude Vision using the uploaded image bytes. Keep
-the return shape (`Analysis` in `app/schemas.py`) unchanged so nothing else
-in the backend, frontend, or dashboard needs to change.
+`app/ollama_ai.py` talks to Ollama's `/api/generate` endpoint with
+`format: "json"`, which works with any model Ollama serves — change
+`OLLAMA_MODEL` to try a different one (bigger/smaller, text-only, etc.).
+To use a hosted API (Claude, OpenAI, etc.) instead of a local model, replace
+the `httpx.post(...)` call in `analyze()` with that provider's client, and
+keep the return shape (`Analysis` in `app/schemas.py`) unchanged so nothing
+else in the backend, frontend, or dashboard needs to change.

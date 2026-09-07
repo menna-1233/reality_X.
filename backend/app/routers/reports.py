@@ -5,7 +5,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..db import get_client
 from ..incidents import find_or_create_incident
-from ..mock_ai import analyze as run_mock_ai
+from ..ollama_ai import analyze as run_ai
 from ..notifications import maybe_notify
 from ..schemas import ReportOut, ReportStatusUpdate
 from ..settings import settings
@@ -36,8 +36,9 @@ async def create_report(
     )
     image_url = client.storage.from_(BUCKET).get_public_url(path)
 
-    # 2. Analyze (mock AI today — see app/mock_ai.py for the real-API swap point)
-    analysis = run_mock_ai(description)
+    # 2. Analyze — real open-source model via Ollama (app/ollama_ai.py) when
+    #    AI_BACKEND=ollama, else the keyword-heuristic mock as a fallback.
+    analysis = run_ai(description, contents)
 
     # 3. Group into an incident
     incident_id = find_or_create_incident(
