@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from ..auth import require_admin
 from ..db import get_client
 from ..schemas import StatsOut
 from ..settings import settings
@@ -9,7 +10,7 @@ from ..settings import settings
 router = APIRouter(tags=["stats"])
 
 
-@router.get("/stats", response_model=StatsOut)
+@router.get("/stats", response_model=StatsOut, dependencies=[Depends(require_admin)])
 async def get_stats(community_id: Optional[str] = None) -> StatsOut:
     client = get_client()
     cid = community_id or settings.default_community_id

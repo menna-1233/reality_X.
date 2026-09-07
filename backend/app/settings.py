@@ -9,5 +9,12 @@ class Settings(BaseSettings):
     default_community_id: str
     notify_report_count_threshold: int = 3
 
+    # "mock" (keyword heuristic) or "ollama" (real open-source model via
+    # a local Ollama server). See app/ollama_ai.py.
+    ai_backend: str = "mock"
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5vl"
+    ollama_timeout_seconds: float = 60.0
+
 
 settings = Settings()

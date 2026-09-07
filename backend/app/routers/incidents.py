@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from ..auth import require_admin
 from ..db import get_client
 from ..schemas import IncidentOut, IncidentUpdate, ReportOut
 from ..settings import settings
@@ -45,7 +46,9 @@ async def get_incident_reports(incident_id: str) -> list[ReportOut]:
     return [ReportOut(**row) for row in rows]
 
 
-@router.patch("/{incident_id}", response_model=IncidentOut)
+@router.patch(
+    "/{incident_id}", response_model=IncidentOut, dependencies=[Depends(require_admin)]
+)
 async def update_incident(incident_id: str, update: IncidentUpdate) -> IncidentOut:
     client = get_client()
     rows = (

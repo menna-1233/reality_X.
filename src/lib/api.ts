@@ -1,4 +1,5 @@
 import { parseLatLng } from "./geo";
+import { getAdminAccessToken } from "./adminAuth";
 import type { Analysis, Report, ReportEvent, ReportStatus } from "../types";
 
 /**
@@ -128,10 +129,14 @@ export async function apiCreateReport({
   return toFrontendReport(row);
 }
 
+/** Admin-only: changing a report's status requires a signed-in admin session. */
 export async function apiSetReportStatus(id: string, status: ReportStatus): Promise<Report> {
+  const token = await getAdminAccessToken();
+  if (!token) throw new Error("Admin sign-in required to change a report's status.");
+
   const row = await request<ApiReport>(`/reports/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ status }),
   });
   return toFrontendReport(row);
