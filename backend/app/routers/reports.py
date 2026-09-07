@@ -1,8 +1,9 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
+from ..auth import require_admin
 from ..db import get_client
 from ..incidents import find_or_create_incident
 from ..ollama_ai import analyze as run_ai
@@ -120,7 +121,9 @@ async def get_report(report_id: str) -> ReportOut:
     return ReportOut(**rows[0])
 
 
-@router.patch("/{report_id}", response_model=ReportOut)
+@router.patch(
+    "/{report_id}", response_model=ReportOut, dependencies=[Depends(require_admin)]
+)
 async def update_report_status(report_id: str, update: ReportStatusUpdate) -> ReportOut:
     client = get_client()
     rows = (

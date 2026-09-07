@@ -84,6 +84,26 @@ Row Level Security is enabled on every table (community-scoped reads/writes);
 the backend itself uses the `service_role` key and therefore bypasses RLS —
 it is the trusted boundary that enforces access rules in application code.
 
+## Access model: anonymous citizens, admin login
+
+- **Citizens report with zero authentication.** `POST /reports` and all
+  `GET` endpoints (feed, incidents) are open — no signup, no login. This is
+  intentional: reporting a pothole shouldn't require an account.
+- **Admins sign in** with email/password via Supabase Auth (on the
+  frontend), and their `profiles.role` must be `admin`.
+- **Admin-only endpoints** — changing a report's or incident's status
+  (`PATCH /reports/{id}`, `PATCH /incidents/{id}`) and the aggregate
+  `GET /stats` — require a valid admin session sent as
+  `Authorization: Bearer <supabase-access-token>`. See `app/auth.py`
+  (`require_admin` dependency): it verifies the token with Supabase, then
+  checks `profiles.role == "admin"`, returning 401/403 otherwise.
+- This is enforced in the API layer (since the backend uses the
+  service-role key and bypasses RLS); the database's own RLS policies are a
+  second line of defense for anything that talks to Supabase directly.
+
+To create an admin: sign a user up (or invite them) in Supabase Auth, then
+set their `profiles.role` to `'admin'`.
+
 ## Swapping to a different model
 
 `app/ollama_ai.py` talks to Ollama's `/api/generate` endpoint with

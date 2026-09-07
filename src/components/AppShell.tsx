@@ -4,13 +4,15 @@ import {
   HelpCircle,
   Inbox,
   LayoutDashboard,
+  LogOut,
   Menu,
   Send,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { signOutAdmin } from "../lib/adminAuth";
 
 const NAV = [
   { to: "/", end: true, icon: Send, label: "بلّغ" },
@@ -28,6 +30,14 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOutAdmin();
+    onNavigate?.();
+    navigate("/");
+  }
+
   return (
     <>
       <div className="flex items-center gap-2 px-1">
@@ -72,15 +82,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <HelpCircle size={16} />
           المساعدة والتوثيق
         </a>
-        <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-700 text-xs font-bold text-slate-300">
-            إد
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-slate-200">إدارة الكمباوند</p>
-            <p className="truncate text-[10px] text-slate-500">admin@urbaneye</p>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+        >
+          <LogOut size={16} />
+          تسجيل خروج (الإدارة)
+        </button>
       </div>
     </>
   );
