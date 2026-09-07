@@ -8,23 +8,20 @@ import { supabase } from "./supabaseClient";
  */
 
 export async function signInAdmin(email: string, password: string): Promise<void> {
-  if (!supabase) throw new Error("Admin login isn't configured (missing Supabase env vars).");
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
 }
 
 export async function signOutAdmin(): Promise<void> {
-  await supabase?.auth.signOut();
+  await supabase.auth.signOut();
 }
 
 export async function getAdminSession(): Promise<Session | null> {
-  if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   return data.session;
 }
 
 export function onAdminSessionChange(callback: (session: Session | null) => void): () => void {
-  if (!supabase) return () => {};
   const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
   return () => data.subscription.unsubscribe();
 }

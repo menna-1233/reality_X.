@@ -10,15 +10,15 @@ import { createClient } from "@supabase/supabase-js";
  * (see backend/app/auth.py) are what actually gate admin actions.
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Fallback to the project's real anon/publishable key when no local .env is
+// set — safe to ship (see .env.example), and means admin login works out of
+// the box without every contributor needing their own Supabase setup.
+const FALLBACK_SUPABASE_URL = "https://ccvdyifhquvcdixaqpat.supabase.co";
+const FALLBACK_SUPABASE_ANON_KEY = "sb_publishable_wo3XHW100Qtq4bCEIOVLBQ_aEUR64Hd";
 
-export const supabase =
-  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_SUPABASE_URL;
+const supabaseAnonKey =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || FALLBACK_SUPABASE_ANON_KEY;
 
-if (!supabase) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    "VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — admin login is disabled.",
-  );
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

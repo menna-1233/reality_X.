@@ -1,3 +1,4 @@
+import { Eye } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { signInAdmin } from "../lib/adminAuth";
@@ -32,16 +33,16 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+        className="surface-panel w-full max-w-sm space-y-4 rounded-xl border border-white/8 p-6"
       >
-        <div>
-          <h1 className="text-lg font-semibold text-slate-100">دخول الإدارة</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            الصفحة دي للإدارة بس — المواطنين مش محتاجين تسجيل دخول عشان يبلّغوا.
-          </p>
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-500 text-ink-950">
+            <Eye size={18} />
+          </span>
+          <h1 className="text-lg font-bold text-white">دخول الإدارة</h1>
         </div>
 
         <label className="block text-sm text-slate-300">
@@ -51,7 +52,7 @@ export function AdminLoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
+            className="surface-panel mt-1 w-full rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
         </label>
 
@@ -62,16 +63,20 @@ export function AdminLoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
+            className="surface-panel mt-1 w-full rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
         </label>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && (
+          <div className="rounded-lg border border-accent-400/20 bg-accent-500/10 p-3">
+            <p className="text-sm text-accent-400">{error}</p>
+          </div>
+        )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-sky-500 px-3 py-2 font-medium text-slate-950 transition hover:bg-sky-400 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-600 disabled:opacity-70"
         >
           {loading ? "جارٍ الدخول..." : "دخول"}
         </button>
