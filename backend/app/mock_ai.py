@@ -71,17 +71,25 @@ def _detect_problem_type(description: str) -> ProblemType:
     return "other"
 
 
-def _detect_severity(problem_type: ProblemType, description: str) -> Severity:
+def _detect_severity(problem_type: ProblemType, description: str, has_description: bool) -> Severity:
     text = (description or "").lower()
     severity = _BASE_SEVERITY[problem_type]
     if any(keyword in text for keyword in _ESCALATION_KEYWORDS):
         severity = _escalate(severity)
+    # A report with no description AND no keyword match ("other") means we
+    # have nothing at all to go on — the photo could be a fire, same as it
+    # could be litter. Defaulting that unknown case to "medium" quietly
+    # buries it in the normal queue, so treat "no signal" as "needs urgent
+    # human review" instead of guessing it's harmless.
+    if not has_description and problem_type == "other":
+        severity = _escalate(severity, steps=2)
     return severity
 
 
 def analyze(description: str) -> Analysis:
     problem_type = _detect_problem_type(description)
-    severity = _detect_severity(problem_type, description)
+    has_description = bool((description or "").strip())
+    severity = _detect_severity(problem_type, description, has_description)
     urgency = ""
     if severity == "critical":
         urgency = " الحالة تصنّف كحرجة وتحتاج استجابة عاجلة."
@@ -93,7 +101,6 @@ def analyze(description: str) -> Analysis:
     # confidence rather than pretending the guess is as solid as a
     # described report, so low-confidence "other" reports get routed to
     # general review instead of a specific department by mistake.
-    has_description = bool((description or "").strip())
     confidence = round(
         random.uniform(0.82, 0.97) if has_description else random.uniform(0.55, 0.72),
         2,
