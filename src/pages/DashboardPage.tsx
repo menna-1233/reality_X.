@@ -59,7 +59,7 @@ export function DashboardPage() {
   const byTypePanelRef = useGlassPointer<HTMLDivElement>();
 
   useEffect(() => {
-    setReports(listReports());
+    listReports().then(setReports).catch(() => setReports([]));
   }, []);
 
   const departments = useMemo(
@@ -136,7 +136,7 @@ export function DashboardPage() {
     [filtered],
   );
 
-  const recentEvents = useMemo(() => listRecentEvents(6), [reports]);
+  const recentEvents = useMemo(() => listRecentEvents(reports, 6), [reports]);
   const activityItems = recentEvents.map(({ report, event }) => ({
     icon: event.kind === "status_changed" ? RefreshCw : event.kind === "analyzed" ? CheckCircle2 : Inbox,
     title: `${PROBLEM_TYPE_LABELS[report.analysis.problemType]} — ${EVENT_LABELS[event.kind]}`,

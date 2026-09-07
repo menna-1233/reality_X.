@@ -122,7 +122,7 @@ export function AppShell({
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
-          <aside className="glass-surface absolute inset-y-0 start-0 flex w-72 flex-col gap-4 p-4">
+          <aside className="glass-surface absolute inset-y-0 start-0 flex w-72 flex-col gap-4 rounded-e-2xl p-4">
             <button
               onClick={() => setDrawerOpen(false)}
               className="self-end rounded-lg p-1.5 text-slate-400 hover:bg-white/5"

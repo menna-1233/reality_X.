@@ -26,7 +26,7 @@ export function SlideOver({
             onClick={onClose}
           />
           <motion.div
-            className="surface-panel relative flex h-full w-full max-w-lg flex-col border-s border-white/10 p-5"
+            className="glass-surface relative flex h-full w-full max-w-lg flex-col rounded-none border-y-0 border-e-0 p-5"
             initial={{ opacity: 0, scale: 0.97, x: 24 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.97, x: 24 }}
