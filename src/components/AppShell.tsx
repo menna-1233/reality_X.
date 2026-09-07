@@ -101,7 +101,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="surface-panel sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex">
+      <aside className="glass-panel sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 rounded-none border-y-0 border-s-0 p-4 md:flex">
         <SidebarContent />
       </aside>
 
@@ -112,7 +112,7 @@ export function AppShell({
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
-          <aside className="surface-panel absolute inset-y-0 start-0 flex w-72 flex-col gap-4 p-4">
+          <aside className="glass-panel absolute inset-y-0 start-0 flex w-72 flex-col gap-4 rounded-e-2xl p-4">
             <button
               onClick={() => setDrawerOpen(false)}
               className="self-end rounded-lg p-1.5 text-slate-400 hover:bg-white/5"
@@ -126,7 +126,7 @@ export function AppShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-panel sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6">
+        <header className="glass-panel sticky top-0 z-10 flex items-center justify-between gap-3 rounded-none border-t-0 border-x-0 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
