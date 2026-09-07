@@ -1,22 +1,47 @@
 import type { Severity } from "../types";
 import { SEVERITY_LABELS } from "../types";
 
-const STYLES: Record<Severity, string> = {
-  low: "bg-severity-low/10 text-severity-low ring-1 ring-inset ring-severity-low/30",
-  medium:
-    "bg-severity-medium/10 text-yellow-700 ring-1 ring-inset ring-severity-medium/40",
-  high: "bg-severity-high/10 text-severity-high ring-1 ring-inset ring-severity-high/30",
-  critical:
-    "bg-severity-critical/10 text-severity-critical ring-1 ring-inset ring-severity-critical/30",
+const COLOR: Record<Severity, string> = {
+  low: "var(--color-severity-low)",
+  medium: "var(--color-severity-medium)",
+  high: "var(--color-severity-high)",
+  critical: "var(--color-severity-critical)",
 };
+
+const BARS_ON: Record<Severity, number> = {
+  low: 1,
+  medium: 2,
+  high: 2,
+  critical: 3,
+};
+
+function SeverityMeter({ severity }: { severity: Severity }) {
+  const on = BARS_ON[severity];
+  const color = COLOR[severity];
+  return (
+    <span className="inline-flex items-end gap-[2px]" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-[3px] rounded-[1px]"
+          style={{
+            height: `${5 + i * 3}px`,
+            background: i < on ? color : "rgba(255,255,255,0.14)",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STYLES[severity]}`}
+      className="inline-flex items-center gap-1.5 text-xs font-medium"
+      style={{ color: COLOR[severity] }}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      خطورة {SEVERITY_LABELS[severity]}
+      <SeverityMeter severity={severity} />
+      {SEVERITY_LABELS[severity]}
     </span>
   );
 }
