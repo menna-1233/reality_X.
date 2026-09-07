@@ -35,6 +35,8 @@ export interface Report {
   analysis: Analysis;
   status: ReportStatus;
   events: ReportEvent[];
+  /** Set by the backend when it groups this report with others as one real-world problem. */
+  incidentId: string | null;
 }
 
 /**

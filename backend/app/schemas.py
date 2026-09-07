@@ -6,7 +6,7 @@ ProblemType = Literal[
     "pothole", "garbage", "water_leak", "broken_light", "accident", "other"
 ]
 Severity = Literal["low", "medium", "high", "critical"]
-ReportStatus = Literal["open", "in_progress", "resolved"]
+ReportStatus = Literal["open", "in_progress", "resolved", "closed"]
 
 
 class Analysis(BaseModel):
@@ -50,6 +50,10 @@ class IncidentOut(BaseModel):
 
 
 class IncidentUpdate(BaseModel):
+    status: ReportStatus
+
+
+class ReportStatusUpdate(BaseModel):
     status: ReportStatus
 
 

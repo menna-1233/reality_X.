@@ -1,59 +1,35 @@
+import { apiCreateReport, apiGetReport, apiListReports, apiSetReportStatus } from "./api";
+import type { SubmitReportInput } from "./api";
 import type { Report, ReportEvent, ReportStatus } from "../types";
 
-const STORAGE_KEY = "urbaneye.reports";
+/**
+ * Thin wrapper around the real backend (see ./api.ts) — kept as its own
+ * module so the rest of the app doesn't need to know it used to be
+ * localStorage-backed.
+ */
 
-function readAll(): Report[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Report[]) : [];
-  } catch {
-    return [];
-  }
+export async function listReports(): Promise<Report[]> {
+  return apiListReports();
 }
 
-function writeAll(reports: Report[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
-  } catch {
-    // localStorage might be unavailable (private mode, quota) — fail silently
-    // for this MVP; a real backend call would be the source of truth instead.
-  }
+export async function getReport(id: string): Promise<Report | undefined> {
+  return apiGetReport(id);
 }
 
-export function listReports(): Report[] {
-  return readAll().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+export async function addReport(input: SubmitReportInput): Promise<Report> {
+  return apiCreateReport(input);
 }
 
-export function getReport(id: string): Report | undefined {
-  return readAll().find((r) => r.id === id);
+export async function setReportStatus(id: string, status: ReportStatus): Promise<Report> {
+  return apiSetReportStatus(id, status);
 }
 
-export function addReport(report: Omit<Report, "events">): void {
-  const all = readAll();
-  const events: ReportEvent[] = [
-    { at: report.createdAt, kind: "created" },
-    { at: report.createdAt, kind: "analyzed" },
-  ];
-  all.push({ ...report, events });
-  writeAll(all);
-}
-
-export function setReportStatus(id: string, status: ReportStatus): void {
-  const all = readAll();
-  const report = all.find((r) => r.id === id);
-  if (!report) return;
-  report.status = status;
-  report.events.push({ at: new Date().toISOString(), kind: "status_changed" });
-  writeAll(all);
-}
-
-export function listRecentEvents(limit = 8): { report: Report; event: ReportEvent }[] {
-  const all = readAll();
-  return all
+/** Pure helper over an already-fetched report list — no network call. */
+export function listRecentEvents(
+  reports: Report[],
+  limit = 8,
+): { report: Report; event: ReportEvent }[] {
+  return reports
     .flatMap((report) => report.events.map((event) => ({ report, event })))
     .sort((a, b) => new Date(b.event.at).getTime() - new Date(a.event.at).getTime())
     .slice(0, limit);

@@ -77,7 +77,7 @@ export function FindingsPage() {
   const draggedRef = useRef(false);
 
   function refresh() {
-    setReports(listReports());
+    listReports().then(setReports).catch(() => setReports([]));
   }
   useEffect(refresh, []);
 
@@ -106,9 +106,9 @@ export function FindingsPage() {
     setTab("summary");
   }
 
-  function handleStatusChange(id: string, status: ReportStatus) {
-    setReportStatus(id, status);
-    const updated = listReports();
+  async function handleStatusChange(id: string, status: ReportStatus) {
+    await setReportStatus(id, status);
+    const updated = await listReports();
     setReports(updated);
     setSelected((prev) => (prev && prev.id === id ? (updated.find((r) => r.id === id) ?? null) : prev));
   }

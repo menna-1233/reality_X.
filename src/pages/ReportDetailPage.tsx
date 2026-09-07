@@ -37,9 +37,18 @@ function statusStepIndex(status: ReportStatus): number {
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null | undefined>(undefined);
+  const [allReports, setAllReports] = useState<Report[]>([]);
 
   useEffect(() => {
-    setReport(id ? (getReport(id) ?? null) : null);
+    if (!id) {
+      setReport(null);
+      return;
+    }
+    setReport(undefined);
+    Promise.all([getReport(id), listReports()]).then(([found, all]) => {
+      setReport(found ?? null);
+      setAllReports(all);
+    });
   }, [id]);
 
   if (report === undefined) return null;
@@ -59,7 +68,7 @@ export function ReportDetailPage() {
 
   const confidencePct = Math.round(report.analysis.confidence * 100);
   const stepIndex = statusStepIndex(report.status);
-  const linkedReports = findLinkedReports(report, listReports());
+  const linkedReports = findLinkedReports(report, allReports);
 
   return (
     <AppShell

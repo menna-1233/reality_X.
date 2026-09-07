@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
-import { mockAnalyze } from "../lib/mockAnalyze";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
 import { PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
@@ -12,7 +11,7 @@ type Status = "idle" | "analyzing" | "done";
 
 export function ReportPage() {
   const navigate = useNavigate();
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -43,33 +42,25 @@ export function ReportPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!imageDataUrl) {
+    if (!imageFile) {
       setError("من فضلك أضف صورة توضح المشكلة");
       return;
     }
     setStatus("analyzing");
     try {
-      const analysis = await mockAnalyze(description);
-      const draft = {
-        id: crypto.randomUUID(),
-        imageDataUrl,
-        description,
-        location,
-        createdAt: new Date().toISOString(),
-        analysis,
-        status: "open" as const,
-      };
-      addReport(draft);
-      setLastReport({ ...draft, events: [] });
+      // The backend does the AI analysis + incident grouping and returns the
+      // finished report — no client-side mock step anymore.
+      const report = await addReport({ imageFile, description, location });
+      setLastReport(report);
       setStatus("done");
     } catch {
-      setError("حدث خطأ أثناء تحليل البلاغ، حاول مرة أخرى");
+      setError("حدث خطأ أثناء إرسال البلاغ، تأكد من اتصال الباك إند وحاول مرة أخرى");
       setStatus("idle");
     }
   }
 
   function reset() {
-    setImageDataUrl(null);
+    setImageFile(null);
     setDescription("");
     setLocation("");
     setLastReport(null);
@@ -130,7 +121,7 @@ export function ReportPage() {
           صوّر المشكلة وسيقوم الـ AI بتحديد نوعها وخطورتها والجهة المسؤولة تلقائيًا.
         </p>
 
-        <PhotoDropzone imageDataUrl={imageDataUrl} onChange={setImageDataUrl} />
+        <PhotoDropzone value={imageFile} onChange={setImageFile} />
 
         <div className="space-y-1">
           <label className="text-sm font-medium text-slate-300">وصف المشكلة</label>

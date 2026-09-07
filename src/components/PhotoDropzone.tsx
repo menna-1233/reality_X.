@@ -1,25 +1,25 @@
 import { Camera, X } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 interface Props {
-  imageDataUrl: string | null;
-  onChange: (dataUrl: string | null) => void;
+  value: File | null;
+  onChange: (file: File | null) => void;
 }
 
-export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
+export function PhotoDropzone({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File | undefined) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.readAsDataURL(file);
-  }
+  const previewUrl = useMemo(() => (value ? URL.createObjectURL(value) : null), [value]);
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
-  if (imageDataUrl) {
+  if (previewUrl) {
     return (
       <div className="surface-panel relative overflow-hidden rounded-xl border border-white/8">
-        <img src={imageDataUrl} alt="الصورة المرفقة" className="h-56 w-full object-cover" />
+        <img src={previewUrl} alt="الصورة المرفقة" className="h-56 w-full object-cover" />
         <button
           type="button"
           onClick={() => onChange(null)}
@@ -47,7 +47,7 @@ export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])}
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />
     </button>
   );

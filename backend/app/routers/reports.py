@@ -7,7 +7,7 @@ from ..db import get_client
 from ..incidents import find_or_create_incident
 from ..mock_ai import analyze as run_mock_ai
 from ..notifications import maybe_notify
-from ..schemas import ReportOut
+from ..schemas import ReportOut, ReportStatusUpdate
 from ..settings import settings
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -114,6 +114,21 @@ async def list_reports(
 async def get_report(report_id: str) -> ReportOut:
     client = get_client()
     rows = client.table("reports").select("*").eq("id", report_id).execute().data
+    if not rows:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return ReportOut(**rows[0])
+
+
+@router.patch("/{report_id}", response_model=ReportOut)
+async def update_report_status(report_id: str, update: ReportStatusUpdate) -> ReportOut:
+    client = get_client()
+    rows = (
+        client.table("reports")
+        .update({"status": update.status})
+        .eq("id", report_id)
+        .execute()
+        .data
+    )
     if not rows:
         raise HTTPException(status_code=404, detail="Report not found")
     return ReportOut(**rows[0])

@@ -1,26 +1,16 @@
-import { parseLatLng } from "./geo";
 import type { Incident, Report, ReportStatus, Severity } from "../types";
 
 const SEVERITY_RANK: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const STATUS_RANK: Record<ReportStatus, number> = { open: 0, in_progress: 1, resolved: 2, closed: 3 };
 
 /**
- * Same real-world problem, reported more than once, should key the same:
- * same problem type + same rough spot (~100m grid on parsed coordinates,
- * else the raw location text). This is the same "mock AI" spirit as
- * mockAnalyze.ts — a simple heuristic standing in for real deduplication.
+ * Reports are grouped by `incidentId`, set server-side (see backend's
+ * app/incidents.py: same problem_type + geographic proximity + recency).
+ * A report without an incidentId (shouldn't normally happen once the
+ * backend is wired up) is treated as its own single-report group.
  */
-function locationBucket(location: string): string {
-  const latLng = parseLatLng(location);
-  if (latLng) {
-    const [lat, lng] = latLng;
-    return `${lat.toFixed(3)},${lng.toFixed(3)}`;
-  }
-  return location.trim().toLowerCase();
-}
-
 function incidentKey(report: Report): string {
-  return `${report.analysis.problemType}::${locationBucket(report.location)}`;
+  return report.incidentId ?? `solo:${report.id}`;
 }
 
 /** Aggregate status: if anything is still actionable, the incident is too. */
@@ -72,7 +62,7 @@ export function groupIntoIncidents(reports: Report[]): Incident[] {
   });
 }
 
-/** Every other report the AI linked to this one as the same real-world problem. */
+/** Every other report the backend linked to this one as the same real-world problem. */
 export function findLinkedReports(report: Report, allReports: Report[]): Report[] {
   const key = incidentKey(report);
   return allReports.filter((r) => r.id !== report.id && incidentKey(r) === key);
