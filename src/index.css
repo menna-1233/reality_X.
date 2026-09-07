@@ -74,27 +74,109 @@ body {
     0 24px 60px -12px rgba(0, 0, 0, 0.65);
 }
 
-/* iOS-style frosted glass panel — the actual floating surface (context menus, sheets,
-   dropdowns): stronger blur/saturation than .glass-overlay, a hairline border that
-   catches light like a real glass edge, and a soft specular highlight along the top. */
-.glass-panel {
-  background: linear-gradient(180deg, rgba(58, 52, 48, 0.55), rgba(28, 24, 21, 0.55));
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 20px 50px -14px rgba(0, 0, 0, 0.7);
-}
-
-/* hairline border used to rim glass surfaces and cards with an iOS-style light edge */
-.glass-border {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
 .map-tiles-dark {
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.6);
+}
+
+/* ── Liquid Glass ──────────────────────────────────────────────────────
+   Apple's "Liquid Glass" material (WWDC 2025 / iOS 26 design language),
+   adapted for the web: a translucent pane that lets content stay visible
+   as it scrolls behind it, plus a specular highlight that drifts toward
+   the pointer to approximate the native material's motion-reactive glint
+   (real-time lensing/refraction of what's behind the glass isn't
+   reproducible in CSS, so this leans on blur + a tracked highlight
+   instead). See useGlassPointer for the highlight tracking.
+
+   Apple's own HIG says to keep this to the nav/chrome layer and use it
+   "sparingly" (developer.apple.com/design/human-interface-guidelines/
+   materials). We deliberately went broader than that — ReportCard and
+   the dashboard panels get it too, not just header/sidebar/dropdowns —
+   because the strictly-chrome-only version read as barely visible
+   against this app's near-black palette and lost the point of adopting
+   the material at all. DataTable, FindingsPage's kanban cards, and form
+   inputs still stay on .surface-panel: translucency behind dense,
+   fine-grained text genuinely hurts legibility there. */
+/* Two background layers on purpose: backdrop-filter alone reads as barely
+   more than "slightly lighter panel" when there's nothing colorful behind
+   it to blur (a flat dark page, most of this app). The linear-gradient
+   sheen is painted ON the glass itself — bright top edge, dimmer belly,
+   a second lift near the bottom — so every glass surface reads as glass
+   on sight, independent of whatever happens to be behind it. */
+.glass-surface {
+  /* NOT `position: relative` here on purpose: this is plain unlayered CSS,
+     which in Tailwind v4's cascade always beats the `@layer utilities`
+     rules Tailwind generates — so setting position here would silently
+     clobber `sticky`/`absolute` utility classes wherever they're combined
+     with .glass-surface (this is exactly what broke the sticky header and
+     sidebar: they computed to `position: relative` instead of `sticky`
+     and scrolled away with the page instead of pinning). Every usage that
+     doesn't already have its own positioned utility class (sticky/fixed/
+     absolute/relative) must add `relative` itself. */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07) 100%),
+    linear-gradient(175deg, rgba(70, 58, 50, 0.55), rgba(28, 23, 20, 0.68));
+  backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 32px rgba(255, 255, 255, 0.05),
+    0 12px 32px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* single pseudo-element carries both the tracked glint and the rim
+   highlight — ::before is reserved for things like ReportCard's severity
+   stripe, so .glass-surface only ever claims ::after */
+.glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    500px circle at var(--glass-x, 25%) var(--glass-y, 0%),
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.06) 45%,
+    transparent 70%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: opacity 0.5s ease;
+}
+
+/* Approximates Apple's "Scroll Edge Effect": content dissolving into a
+   floating glass surface instead of getting a hard clip as it scrolls
+   past. Drop as a child of a `.glass-surface` that's `sticky`/`fixed` —
+   it pins itself to that surface's bottom edge and fades into it. The
+   parent needs no extra positioning: sticky/fixed already establish the
+   containing block this absolute child positions against. */
+.scroll-edge-fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 28px;
+  transform: translateY(100%);
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(11, 9, 8, 0.55), transparent);
+}
+
+/* Apple's own HIG guidance for Liquid Glass: honor reduced-transparency
+   and higher-contrast preferences with an opaque fallback rather than
+   shipping glass unconditionally. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass-surface,
+  .glass-overlay {
+    background: var(--color-ink-850);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass-surface::after {
+    display: none;
+  }
+
+  .scroll-edge-fade {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
