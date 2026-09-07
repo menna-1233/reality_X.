@@ -1,28 +1,45 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { animate, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-function useCountUp(target: number) {
+function useCountUp(target: number, durationMs = 600) {
   const prefersReduced = useReducedMotion();
   const [display, setDisplay] = useState(target);
   const prevRef = useRef(target);
+  // Async data loading (reports arriving after mount) shouldn't animate as if
+  // the user watched it count up from zero — only genuine later changes should.
+  const pastFirstChangeRef = useRef(false);
 
   useEffect(() => {
-    if (prefersReduced) {
+    const from = prevRef.current;
+    prevRef.current = target;
+
+    if (from === target) {
       setDisplay(target);
-      prevRef.current = target;
       return;
     }
-    const from = prevRef.current;
-    const controls = animate(from, target, {
-      duration: 0.6,
-      ease: "easeOut",
-      onUpdate: (v) => setDisplay(Math.round(v)),
-    });
-    prevRef.current = target;
-    return () => controls.stop();
-  }, [target, prefersReduced]);
+    if (!pastFirstChangeRef.current) {
+      pastFirstChangeRef.current = true;
+      setDisplay(target);
+      return;
+    }
+    if (prefersReduced) {
+      setDisplay(target);
+      return;
+    }
+
+    let raf = 0;
+    const start = performance.now();
+    function tick(now: number) {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - (1 - t) * (1 - t); // ease-out quad
+      setDisplay(Math.round(from + (target - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, durationMs, prefersReduced]);
 
   return display;
 }

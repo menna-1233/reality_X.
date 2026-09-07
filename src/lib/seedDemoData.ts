@@ -101,6 +101,23 @@ const DEMO: DemoReport[] = [
     },
     status: "closed",
   },
+  {
+    // same real-world leak as demo-1, reported independently by a second resident
+    // a few minutes later, a couple of meters off — should auto-group into one incident.
+    id: "demo-7",
+    imageDataUrl: svgPlaceholder("#dc2626", "تسريب"),
+    description: "مياه بتسيل جنب البوابة من ساعة تقريبًا",
+    location: "30.05955, 31.23180",
+    createdAt: new Date(now - 12 * 60000).toISOString(),
+    analysis: {
+      problemType: "water_leak",
+      severity: "high",
+      department: "إدارة الصيانة والمرافق",
+      confidence: 0.83,
+      summary: "بلاغ إضافي عن نفس منطقة التسريب.",
+    },
+    status: "open",
+  },
 ];
 
 /** Dev-only convenience: seeds a handful of demo reports so the feed/dashboard aren't empty on first run. */

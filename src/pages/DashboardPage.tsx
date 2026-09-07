@@ -18,6 +18,7 @@ import { Gauge } from "../components/Gauge";
 import { Sparkline } from "../components/Sparkline";
 import { StatTile } from "../components/StatTile";
 import { parseLatLng } from "../lib/geo";
+import { groupIntoIncidents } from "../lib/incidents";
 import { listRecentEvents, listReports } from "../lib/storage";
 import type { Report, Severity } from "../types";
 import { EVENT_LABELS, PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
@@ -70,10 +71,13 @@ export function DashboardPage() {
   }, [reports, search, dept]);
 
   const total = filtered.length;
-  const openCount = filtered.filter((r) => r.status === "open" || r.status === "in_progress").length;
   const criticalCount = filtered.filter((r) => r.analysis.severity === "critical").length;
   const resolvedCount = filtered.filter((r) => r.status === "resolved").length;
   const resolutionRate = total > 0 ? (resolvedCount / total) * 100 : 0;
+  const activeIncidentCount = useMemo(
+    () => groupIntoIncidents(filtered).filter((i) => i.status === "open" || i.status === "in_progress").length,
+    [filtered],
+  );
 
   const trend = useMemo(() => {
     const days = 7;
@@ -234,7 +238,7 @@ export function DashboardPage() {
           <div className="space-y-3 lg:order-1">
             <div className="grid grid-cols-2 gap-2">
               <StatTile label="إجمالي البلاغات" value={total} delta={trendDelta} deltaGoodDirection="down" />
-              <StatTile label="مفتوحة" value={openCount} />
+              <StatTile label="حوادث نشطة" value={activeIncidentCount} />
               <StatTile label="حرجة" value={criticalCount} />
               <StatTile label="تم حلها" value={resolvedCount} />
             </div>
