@@ -193,7 +193,7 @@ export function FindingsPage() {
       label: "التاريخ",
       render: (r) => (
         <span className="font-mono text-xs text-slate-500">
-          {new Date(r.createdAt).toLocaleDateString("ar-EG")}
+          {new Date(r.createdAt).toLocaleDateString("ar-EG-u-nu-latn")}
         </span>
       ),
     },
