@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ReportDetailPanel } from "../components/ReportDetailPanel";
-import { getReport } from "../lib/storage";
+import { findReportGroup } from "../lib/groupReports";
+import { getReport, listReports } from "../lib/storage";
 import type { Report } from "../types";
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [report, setReport] = useState<Report | null | undefined>(undefined);
+  const [linkedReports, setLinkedReports] = useState<Report[]>([]);
 
   useEffect(() => {
-    setReport(id ? getReport(id) ?? null : null);
+    if (!id) {
+      setReport(null);
+      return;
+    }
+    const found = getReport(id) ?? null;
+    setReport(found);
+    setLinkedReports(found ? findReportGroup(id, listReports()).filter((r) => r.id !== id) : []);
   }, [id]);
 
   if (report === undefined) return null;
@@ -30,7 +38,11 @@ export function ReportDetailPage() {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm" />
       <div className="absolute inset-y-0 right-0 w-full max-w-md">
-        <ReportDetailPanel report={report} onClose={() => navigate("/feed")} />
+        <ReportDetailPanel
+          report={report}
+          linkedReports={linkedReports}
+          onClose={() => navigate("/feed")}
+        />
       </div>
     </div>
   );

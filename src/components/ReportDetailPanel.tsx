@@ -1,4 +1,4 @@
-import { MapPin, Sparkles, X } from "lucide-react";
+import { Link2, MapPin, Sparkles, X } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import { PROBLEM_TYPE_LABELS } from "../types";
 import type { Report } from "../types";
@@ -31,9 +31,11 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ReportDetailPanel({
   report,
+  linkedReports = [],
   onClose,
 }: {
   report: Report;
+  linkedReports?: Report[];
   onClose: () => void;
 }) {
   const confidencePct = Math.round(report.analysis.confidence * 100);
@@ -47,6 +49,11 @@ export function ReportDetailPanel({
           <h2 className="text-lg font-bold text-mist-100">
             {PROBLEM_TYPE_LABELS[report.analysis.problemType]}
           </h2>
+          {linkedReports.length > 0 && (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-ember-400">
+              <Link2 size={11} /> {linkedReports.length + 1} بلاغات عن نفس المشكلة
+            </p>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -107,6 +114,36 @@ export function ReportDetailPanel({
             {report.analysis.summary}
           </p>
         </section>
+
+        {linkedReports.length > 0 && (
+          <section>
+            <h3 className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-mist-100">
+              <Link2 size={14} className="text-ember-400" /> بلاغات أخرى عن نفس المشكلة
+            </h3>
+            <div className="space-y-2">
+              {linkedReports.map((linked) => (
+                <div
+                  key={linked.id}
+                  className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-2.5"
+                >
+                  <img
+                    src={linked.imageDataUrl}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-mist-100">
+                      {linked.description || "بدون وصف"}
+                    </p>
+                    <p className="text-xs text-mist-500">
+                      {formatDate(linked.createdAt)} · {formatTime(linked.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <h3 className="mb-1 text-sm font-semibold text-mist-100">السجل</h3>

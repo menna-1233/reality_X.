@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import type { Report, Severity } from "../types";
 import { PROBLEM_TYPE_LABELS } from "../types";
 import { SeverityBadge } from "./SeverityBadge";
@@ -22,9 +23,11 @@ function relativeTime(iso: string): string {
 
 export function ReportCard({
   report,
+  linkedCount = 0,
   onOpen,
 }: {
   report: Report;
+  linkedCount?: number;
   onOpen: (report: Report) => void;
 }) {
   return (
@@ -50,8 +53,13 @@ export function ReportCard({
         <p className="line-clamp-1 text-sm text-mist-500">
           {report.location || "بدون موقع محدد"}
         </p>
-        <div className="mt-1">
+        <div className="mt-1 flex items-center gap-2">
           <SeverityBadge severity={report.analysis.severity} />
+          {linkedCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2 py-0.5 text-xs font-medium text-mist-300">
+              <Link2 size={11} className="text-ember-400" />+{linkedCount} بلاغ مرتبط
+            </span>
+          )}
         </div>
       </div>
     </button>
