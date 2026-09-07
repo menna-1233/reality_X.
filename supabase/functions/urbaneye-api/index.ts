@@ -1,0 +1,461 @@
+// UrbanEye AI API — Supabase Edge Function
+//
+// Port of backend/app/* (FastAPI) to a single Deno edge function, since no
+// external host was running the FastAPI service. Mirrors the same routes,
+// mock-AI heuristic, incident grouping and notification logic.
+
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const DEFAULT_COMMUNITY_ID =
+  Deno.env.get("DEFAULT_COMMUNITY_ID") ?? "e0d54643-b957-4057-a814-e909bdb5cf88";
+const NOTIFY_REPORT_COUNT_THRESHOLD = Number(
+  Deno.env.get("NOTIFY_REPORT_COUNT_THRESHOLD") ?? "3",
+);
+
+const BUCKET = "report-images";
+const FN_PREFIX = "/urbaneye-api"; // matches the function's URL path
+
+const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "*",
+  "Access-Control-Allow-Headers": "*",
+};
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
+// ---------------- mock AI (port of app/mock_ai.py) ----------------
+
+type ProblemType = "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other";
+type Severity = "low" | "medium" | "high" | "critical";
+
+const KEYWORD_MAP: [string[], ProblemType][] = [
+  [["زبال", "قمام", "garbage", "trash"], "garbage"],
+  [["مياه", "تسريب", "مايه", "water", "leak"], "water_leak"],
+  [["عمود", "نور", "كهرب", "light", "lamp"], "broken_light"],
+  [["حفر", "طريق", "pothole", "hole"], "pothole"],
+  [["حريق", "نار", "fire", "burn"], "accident"],
+  [["حادث", "اصطدام", "accident", "crash"], "accident"],
+];
+
+const BASE_SEVERITY: Record<ProblemType, Severity> = {
+  pothole: "medium",
+  garbage: "low",
+  water_leak: "medium",
+  broken_light: "low",
+  accident: "critical",
+  other: "medium",
+};
+
+const SEVERITY_ORDER: Severity[] = ["low", "medium", "high", "critical"];
+const ESCALATION_KEYWORDS = ["خطر", "عاجل", "شديد", "urgent", "danger", "severe"];
+
+const DEPARTMENTS: Record<ProblemType, string> = {
+  pothole: "إدارة الصيانة والطرق",
+  garbage: "إدارة النظافة",
+  water_leak: "إدارة الصيانة والمرافق",
+  broken_light: "إدارة الكهرباء",
+  accident: "الأمن وإدارة الطوارئ",
+  other: "الإدارة العامة",
+};
+
+const SUMMARIES: Record<ProblemType, string> = {
+  pothole: "تم رصد حفرة قد تشكل خطورة على السيارات والمشاة.",
+  garbage: "تم رصد تراكم للقمامة يحتاج إلى إزالة سريعة.",
+  water_leak: "تم رصد تسريب مياه قد يؤثر على البنية التحتية المحيطة.",
+  broken_light: "تم رصد عمود إنارة معطل يؤثر على الرؤية والأمان الليلي.",
+  accident: "تم رصد حادث يتطلب تدخلاً فورياً من فريق الطوارئ.",
+  other: "تم رصد مشكلة تحتاج إلى مراجعة الإدارة المختصة.",
+};
+
+function escalate(severity: Severity, steps = 1): Severity {
+  const idx = Math.min(SEVERITY_ORDER.indexOf(severity) + steps, SEVERITY_ORDER.length - 1);
+  return SEVERITY_ORDER[idx];
+}
+
+function detectProblemType(description: string): ProblemType {
+  const text = (description || "").toLowerCase();
+  for (const [keywords, type] of KEYWORD_MAP) {
+    if (keywords.some((k) => text.includes(k))) return type;
+  }
+  return "other";
+}
+
+function detectSeverity(problemType: ProblemType, description: string): Severity {
+  const text = (description || "").toLowerCase();
+  let severity = BASE_SEVERITY[problemType];
+  if (ESCALATION_KEYWORDS.some((k) => text.includes(k))) severity = escalate(severity);
+  return severity;
+}
+
+interface Analysis {
+  problem_type: ProblemType;
+  severity: Severity;
+  department: string;
+  confidence: number;
+  summary: string;
+}
+
+function runMockAi(description: string): Analysis {
+  const problemType = detectProblemType(description);
+  const severity = detectSeverity(problemType, description);
+  let urgency = "";
+  if (severity === "critical") urgency = " الحالة تصنّف كحرجة وتحتاج استجابة عاجلة.";
+  else if (severity === "high") urgency = " الحالة ذات أولوية عالية.";
+
+  const hasDescription = Boolean((description || "").trim());
+  const confidence = Math.round(
+    (hasDescription ? 0.82 + Math.random() * 0.15 : 0.55 + Math.random() * 0.17) * 100,
+  ) / 100;
+
+  return {
+    problem_type: problemType,
+    severity,
+    department: DEPARTMENTS[problemType],
+    confidence,
+    summary: SUMMARIES[problemType] + urgency,
+  };
+}
+
+// ---------------- incident grouping (port of app/incidents.py) ----------------
+
+const RADIUS_METERS = 80;
+const TIME_WINDOW_HOURS = 48;
+const SEVERITY_RANK: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const phi1 = toRad(lat1);
+  const phi2 = toRad(lat2);
+  const dPhi = toRad(lat2 - lat1);
+  const dLambda = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(a));
+}
+
+async function findOrCreateIncident(opts: {
+  communityId: string;
+  problemType: ProblemType;
+  severity: Severity;
+  department: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}): Promise<string> {
+  const { communityId, problemType, severity, department, latitude, longitude } = opts;
+
+  const { data: candidates, error } = await client
+    .from("incidents")
+    .select("id, severity, latitude, longitude, report_count, last_reported_at")
+    .eq("community_id", communityId)
+    .eq("problem_type", problemType)
+    .neq("status", "resolved");
+  if (error) throw error;
+
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - TIME_WINDOW_HOURS * 3600 * 1000);
+
+  for (const incident of candidates ?? []) {
+    const lastReported = new Date(incident.last_reported_at);
+    if (lastReported < cutoff) continue;
+
+    let match: boolean;
+    if (latitude == null || longitude == null) {
+      match = incident.latitude == null;
+    } else if (incident.latitude == null || incident.longitude == null) {
+      match = false;
+    } else {
+      const distance = haversineMeters(latitude, longitude, incident.latitude, incident.longitude);
+      match = distance <= RADIUS_METERS;
+    }
+    if (!match) continue;
+
+    let newSeverity = incident.severity as Severity;
+    if (SEVERITY_RANK[severity] > SEVERITY_RANK[newSeverity]) newSeverity = severity;
+
+    const { error: updateError } = await client
+      .from("incidents")
+      .update({
+        report_count: incident.report_count + 1,
+        last_reported_at: now.toISOString(),
+        severity: newSeverity,
+      })
+      .eq("id", incident.id);
+    if (updateError) throw updateError;
+    return incident.id;
+  }
+
+  const { data: created, error: insertError } = await client
+    .from("incidents")
+    .insert({
+      community_id: communityId,
+      problem_type: problemType,
+      severity,
+      department,
+      latitude,
+      longitude,
+      report_count: 1,
+      first_reported_at: now.toISOString(),
+      last_reported_at: now.toISOString(),
+    })
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created.id;
+}
+
+// ---------------- notifications (port of app/notifications.py) ----------------
+
+async function maybeNotify(opts: {
+  communityId: string;
+  incidentId: string;
+  problemType: ProblemType;
+  severity: Severity;
+  reportCount: number;
+}): Promise<void> {
+  const { communityId, incidentId, problemType, severity, reportCount } = opts;
+  const shouldNotify =
+    severity === "critical" || reportCount === NOTIFY_REPORT_COUNT_THRESHOLD;
+  if (!shouldNotify) return;
+
+  const message =
+    severity === "critical"
+      ? `⚠️ بلاغ حرج: تم رصد مشكلة (${problemType}) تحتاج تدخلاً فورياً.`
+      : `تنبيه: ${reportCount} بلاغات مستقلة عن نفس المشكلة (${problemType}) في محيطك — الإدارة تمت إفادتها.`;
+
+  await client.from("notifications").insert({
+    community_id: communityId,
+    incident_id: incidentId,
+    message,
+    severity,
+  });
+}
+
+// ---------------- HTTP routing ----------------
+
+function stripPrefix(pathname: string): string {
+  if (pathname.startsWith(FN_PREFIX)) return pathname.slice(FN_PREFIX.length) || "/";
+  return pathname;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+
+  const url = new URL(req.url);
+  const path = stripPrefix(url.pathname);
+  const parts = path.split("/").filter(Boolean); // e.g. ["reports", "<id>"]
+
+  try {
+    if (path === "/health") {
+      return json({ status: "ok" });
+    }
+
+    if (path === "/analyze" && req.method === "POST") {
+      const form = await req.formData();
+      const description = String(form.get("description") ?? "");
+      return json(runMockAi(description));
+    }
+
+    if (parts[0] === "reports") {
+      if (parts.length === 1 && req.method === "POST") {
+        const form = await req.formData();
+        const image = form.get("image") as File | null;
+        if (!image) return json({ detail: "image is required" }, 422);
+        const description = String(form.get("description") ?? "");
+        const locationText = String(form.get("location_text") ?? "");
+        const latRaw = form.get("latitude");
+        const lngRaw = form.get("longitude");
+        const latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
+        const longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
+        const communityId = String(form.get("community_id") ?? "") || DEFAULT_COMMUNITY_ID;
+
+        const ext = (image.name || "photo.jpg").split(".").pop();
+        const path_ = `${communityId}/${crypto.randomUUID()}.${ext}`;
+        const bytes = new Uint8Array(await image.arrayBuffer());
+        const { error: uploadError } = await client.storage
+          .from(BUCKET)
+          .upload(path_, bytes, { contentType: image.type || "image/jpeg" });
+        if (uploadError) throw uploadError;
+        const { data: pub } = client.storage.from(BUCKET).getPublicUrl(path_);
+        const imageUrl = pub.publicUrl;
+
+        const analysis = runMockAi(description);
+
+        const incidentId = await findOrCreateIncident({
+          communityId,
+          problemType: analysis.problem_type,
+          severity: analysis.severity,
+          department: analysis.department,
+          latitude,
+          longitude,
+        });
+
+        const { data: inserted, error: insertError } = await client
+          .from("reports")
+          .insert({
+            community_id: communityId,
+            incident_id: incidentId,
+            image_url: imageUrl,
+            description,
+            latitude,
+            longitude,
+            location_text: locationText,
+            problem_type: analysis.problem_type,
+            severity: analysis.severity,
+            department: analysis.department,
+            confidence: analysis.confidence,
+            ai_summary: analysis.summary,
+          })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+
+        const { data: incident } = await client
+          .from("incidents")
+          .select("report_count")
+          .eq("id", incidentId)
+          .single();
+
+        await maybeNotify({
+          communityId,
+          incidentId,
+          problemType: analysis.problem_type,
+          severity: analysis.severity,
+          reportCount: incident?.report_count ?? 1,
+        });
+
+        return json(inserted, 201);
+      }
+
+      if (parts.length === 1 && req.method === "GET") {
+        const communityId = url.searchParams.get("community_id") || DEFAULT_COMMUNITY_ID;
+        const status = url.searchParams.get("status");
+        const severity = url.searchParams.get("severity");
+        let query = client
+          .from("reports")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .eq("community_id", communityId);
+        if (status) query = query.eq("status", status);
+        if (severity) query = query.eq("severity", severity);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json(data);
+      }
+
+      if (parts.length === 2 && req.method === "GET") {
+        const { data, error } = await client
+          .from("reports")
+          .select("*")
+          .eq("id", parts[1]);
+        if (error) throw error;
+        if (!data || data.length === 0) return json({ detail: "Report not found" }, 404);
+        return json(data[0]);
+      }
+
+      if (parts.length === 2 && req.method === "PATCH") {
+        const body = await req.json();
+        const { data, error } = await client
+          .from("reports")
+          .update({ status: body.status })
+          .eq("id", parts[1])
+          .select();
+        if (error) throw error;
+        if (!data || data.length === 0) return json({ detail: "Report not found" }, 404);
+        return json(data[0]);
+      }
+    }
+
+    if (parts[0] === "incidents") {
+      if (parts.length === 1 && req.method === "GET") {
+        const communityId = url.searchParams.get("community_id") || DEFAULT_COMMUNITY_ID;
+        const status = url.searchParams.get("status");
+        let query = client
+          .from("incidents")
+          .select("*")
+          .order("last_reported_at", { ascending: false })
+          .eq("community_id", communityId);
+        if (status) query = query.eq("status", status);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json(data);
+      }
+
+      if (parts.length === 2 && req.method === "GET") {
+        const { data, error } = await client
+          .from("incidents")
+          .select("*")
+          .eq("id", parts[1]);
+        if (error) throw error;
+        if (!data || data.length === 0) return json({ detail: "Incident not found" }, 404);
+        return json(data[0]);
+      }
+
+      if (parts.length === 3 && parts[2] === "reports" && req.method === "GET") {
+        const { data, error } = await client
+          .from("reports")
+          .select("*")
+          .eq("incident_id", parts[1])
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return json(data);
+      }
+
+      if (parts.length === 2 && req.method === "PATCH") {
+        const body = await req.json();
+        const { data, error } = await client
+          .from("incidents")
+          .update({ status: body.status })
+          .eq("id", parts[1])
+          .select();
+        if (error) throw error;
+        if (!data || data.length === 0) return json({ detail: "Incident not found" }, 404);
+        return json(data[0]);
+      }
+    }
+
+    if (path === "/stats" && req.method === "GET") {
+      const communityId = url.searchParams.get("community_id") || DEFAULT_COMMUNITY_ID;
+      const { data: reports, error } = await client
+        .from("reports")
+        .select("severity, problem_type")
+        .eq("community_id", communityId);
+      if (error) throw error;
+
+      const { count, error: countError } = await client
+        .from("incidents")
+        .select("id", { count: "exact", head: true })
+        .eq("community_id", communityId)
+        .neq("status", "resolved");
+      if (countError) throw countError;
+
+      const bySeverity: Record<string, number> = {};
+      const byProblemType: Record<string, number> = {};
+      for (const row of reports ?? []) {
+        bySeverity[row.severity] = (bySeverity[row.severity] ?? 0) + 1;
+        byProblemType[row.problem_type] = (byProblemType[row.problem_type] ?? 0) + 1;
+      }
+
+      return json({
+        total_reports: (reports ?? []).length,
+        open_incidents: count ?? 0,
+        by_severity: bySeverity,
+        by_problem_type: byProblemType,
+      });
+    }
+
+    return json({ detail: "Not found" }, 404);
+  } catch (err) {
+    console.error(err);
+    return json({ detail: String(err instanceof Error ? err.message : err) }, 500);
+  }
+});

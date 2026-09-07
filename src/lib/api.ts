@@ -7,10 +7,13 @@ import type { Analysis, Report, ReportEvent, ReportStatus } from "../types";
  * classification and incident grouping now happen server-side.
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(
-  /\/$/,
-  "",
-);
+// Falls back to the deployed Supabase Edge Function (see supabase/functions/urbaneye-api)
+// so the production build works even without VITE_API_BASE_URL set — override it for
+// local development against `uvicorn app.main:app` (see backend/README.md).
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL ??
+  "https://ccvdyifhquvcdixaqpat.supabase.co/functions/v1/urbaneye-api"
+).replace(/\/$/, "");
 
 // ---- wire shapes coming back from FastAPI (snake_case) ----
 
