@@ -87,23 +87,33 @@ body {
    reproducible in CSS, so this leans on blur + a tracked highlight
    instead). See useGlassPointer for the highlight tracking.
 
-   Apple's own HIG (developer.apple.com/design/human-interface-guidelines/
-   materials) is explicit about scope: "Liquid Glass forms a distinct
-   functional layer for controls and navigation... Don't use Liquid Glass
-   in the content layer" and "use Liquid Glass effects sparingly... limit
-   these effects to the most important functional elements." So this is
-   for navigation chrome and floating/transient controls ONLY — the
-   header, the sidebar, dropdowns, modal scrims — never for content
-   (report cards, dashboard panels, tables, kanban, form inputs), which
-   stay on .surface-panel regardless of how "important" they look. */
+   Apple's own HIG says to keep this to the nav/chrome layer and use it
+   "sparingly" (developer.apple.com/design/human-interface-guidelines/
+   materials). We deliberately went broader than that — ReportCard and
+   the dashboard panels get it too, not just header/sidebar/dropdowns —
+   because the strictly-chrome-only version read as barely visible
+   against this app's near-black palette and lost the point of adopting
+   the material at all. DataTable, FindingsPage's kanban cards, and form
+   inputs still stay on .surface-panel: translucency behind dense,
+   fine-grained text genuinely hurts legibility there. */
+/* Two background layers on purpose: backdrop-filter alone reads as barely
+   more than "slightly lighter panel" when there's nothing colorful behind
+   it to blur (a flat dark page, most of this app). The linear-gradient
+   sheen is painted ON the glass itself — bright top edge, dimmer belly,
+   a second lift near the bottom — so every glass surface reads as glass
+   on sight, independent of whatever happens to be behind it. */
 .glass-surface {
   position: relative;
-  background: linear-gradient(175deg, rgba(32, 27, 23, 0.6), rgba(20, 17, 15, 0.72));
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07) 100%),
+    linear-gradient(175deg, rgba(70, 58, 50, 0.55), rgba(28, 23, 20, 0.68));
+  backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.2);
+  border-color: rgba(255, 255, 255, 0.22);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 32px rgba(255, 255, 255, 0.05),
+    0 12px 32px -12px rgba(0, 0, 0, 0.7);
 }
 
 /* single pseudo-element carries both the tracked glint and the rim
@@ -116,12 +126,12 @@ body {
   pointer-events: none;
   border-radius: inherit;
   background: radial-gradient(
-    420px circle at var(--glass-x, 20%) var(--glass-y, -10%),
-    rgba(255, 255, 255, 0.16),
-    transparent 65%
+    500px circle at var(--glass-x, 25%) var(--glass-y, 0%),
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.06) 45%,
+    transparent 70%
   );
-  opacity: 0.85;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition: opacity 0.5s ease;
 }
 
