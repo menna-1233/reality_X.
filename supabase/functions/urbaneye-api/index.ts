@@ -89,10 +89,16 @@ function detectProblemType(description: string): ProblemType {
   return "other";
 }
 
-function detectSeverity(problemType: ProblemType, description: string): Severity {
+function detectSeverity(problemType: ProblemType, description: string, hasDescription: boolean): Severity {
   const text = (description || "").toLowerCase();
   let severity = BASE_SEVERITY[problemType];
   if (ESCALATION_KEYWORDS.some((k) => text.includes(k))) severity = escalate(severity);
+  // No description AND no keyword match ("other") means we have nothing at
+  // all to go on — the photo could be a fire, same as it could be litter.
+  // Defaulting that unknown case to "medium" quietly buries it in the
+  // normal queue, so treat "no signal" as "needs urgent human review"
+  // instead of guessing it's harmless.
+  if (!hasDescription && problemType === "other") severity = escalate(severity, 2);
   return severity;
 }
 
@@ -106,12 +112,12 @@ interface Analysis {
 
 function runMockAi(description: string): Analysis {
   const problemType = detectProblemType(description);
-  const severity = detectSeverity(problemType, description);
+  const hasDescription = Boolean((description || "").trim());
+  const severity = detectSeverity(problemType, description, hasDescription);
   let urgency = "";
   if (severity === "critical") urgency = " الحالة تصنّف كحرجة وتحتاج استجابة عاجلة.";
   else if (severity === "high") urgency = " الحالة ذات أولوية عالية.";
 
-  const hasDescription = Boolean((description || "").trim());
   const confidence = Math.round(
     (hasDescription ? 0.82 + Math.random() * 0.15 : 0.55 + Math.random() * 0.17) * 100,
   ) / 100;
