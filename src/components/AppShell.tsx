@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useGlassPointer } from "../hooks/useGlassPointer";
 import { signOutAdmin } from "../lib/adminAuth";
 import { useAdminSession } from "../lib/useAdminSession";
 
@@ -29,8 +30,12 @@ const ADMIN_NAV = [
   { to: "/findings", end: false, icon: ClipboardList, label: "إدارة البلاغات" },
 ];
 
+// capsule, not rounded-lg: Apple's Liquid Glass controls default to a
+// capsule shape ("`.glassEffect()` applies the `.regular` variant in a
+// `.capsule` shape") — this pill is the nav's glass-layer active highlight,
+// the same role as a tab bar's sliding capsule indicator.
 function navLinkClass({ isActive }: { isActive: boolean }) {
-  return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+  return `flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium transition ${
     isActive
       ? "bg-accent-500/12 text-accent-400"
       : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
@@ -148,10 +153,15 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const sidebarRef = useGlassPointer<HTMLElement>();
+  const headerRef = useGlassPointer<HTMLElement>();
 
   return (
     <div className="flex min-h-screen">
-      <aside className="surface-panel sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex">
+      <aside
+        ref={sidebarRef}
+        className="glass-surface sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex"
+      >
         <SidebarContent />
       </aside>
 
@@ -162,7 +172,7 @@ export function AppShell({
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
-          <aside className="surface-panel absolute inset-y-0 start-0 flex w-72 flex-col gap-4 p-4">
+          <aside className="glass-surface absolute inset-y-0 start-0 flex w-72 flex-col gap-4 rounded-e-2xl p-4">
             <button
               onClick={() => setDrawerOpen(false)}
               className="self-end rounded-lg p-1.5 text-slate-400 hover:bg-white/5"
@@ -176,7 +186,10 @@ export function AppShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-panel sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6">
+        <header
+          ref={headerRef}
+          className="glass-surface sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6"
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -195,6 +208,7 @@ export function AppShell({
             </div>
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
+          <div className="scroll-edge-fade" aria-hidden="true" />
         </header>
 
         <main className="flex-1 p-4 md:p-6">{children}</main>
