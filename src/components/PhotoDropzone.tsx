@@ -18,12 +18,12 @@ export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
 
   if (imageDataUrl) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10">
+      <div className="surface-panel relative overflow-hidden rounded-xl border border-white/8">
         <img src={imageDataUrl} alt="الصورة المرفقة" className="h-56 w-full object-cover" />
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="absolute left-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/70 text-mist-100 backdrop-blur"
+          className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white"
           aria-label="إزالة الصورة"
         >
           <X size={16} />
@@ -36,11 +36,11 @@ export function PhotoDropzone({ imageDataUrl, onChange }: Props) {
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="flex h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ember-500/30 bg-white/[0.03] text-mist-300 backdrop-blur-xl transition hover:border-ember-500/50 hover:bg-white/[0.06]"
+      className="surface-panel flex h-56 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-accent-400/30 text-accent-400 transition hover:bg-white/[0.04]"
     >
-      <Camera size={32} className="text-ember-400" />
-      <span className="font-medium text-mist-100">اضغط لإضافة صورة المشكلة</span>
-      <span className="text-xs text-mist-500">JPG, PNG</span>
+      <Camera size={32} />
+      <span className="font-medium">اضغط لإضافة صورة المشكلة</span>
+      <span className="text-xs text-accent-400/70">JPG, PNG</span>
       <input
         ref={inputRef}
         type="file"
