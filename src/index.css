@@ -103,7 +103,15 @@ body {
    a second lift near the bottom — so every glass surface reads as glass
    on sight, independent of whatever happens to be behind it. */
 .glass-surface {
-  position: relative;
+  /* NOT `position: relative` here on purpose: this is plain unlayered CSS,
+     which in Tailwind v4's cascade always beats the `@layer utilities`
+     rules Tailwind generates — so setting position here would silently
+     clobber `sticky`/`absolute` utility classes wherever they're combined
+     with .glass-surface (this is exactly what broke the sticky header and
+     sidebar: they computed to `position: relative` instead of `sticky`
+     and scrolled away with the page instead of pinning). Every usage that
+     doesn't already have its own positioned utility class (sticky/fixed/
+     absolute/relative) must add `relative` itself. */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07) 100%),
     linear-gradient(175deg, rgba(70, 58, 50, 0.55), rgba(28, 23, 20, 0.68));
