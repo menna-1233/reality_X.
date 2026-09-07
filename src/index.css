@@ -3,28 +3,41 @@
 @theme {
   --font-sans: "Cairo", "Tahoma", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #eefbff;
-  --color-brand-100: #d6f4ff;
-  --color-brand-200: #b0e9ff;
-  --color-brand-300: #79d9ff;
-  --color-brand-400: #3cc0ff;
-  --color-brand-500: #12a2f0;
-  --color-brand-600: #0781cc;
-  --color-brand-700: #0867a5;
-  --color-brand-800: #0d5789;
-  --color-brand-900: #114972;
+  --color-ink-950: #07080a;
+  --color-ink-900: #101216;
+  --color-ink-850: #15171d;
+  --color-ink-800: #1b1d24;
+  --color-ink-700: #282b34;
 
-  --color-severity-low: #22c55e;
-  --color-severity-medium: #eab308;
-  --color-severity-high: #f97316;
-  --color-severity-critical: #ef4444;
+  --color-mist-100: #f4f1ec;
+  --color-mist-300: #c9c4bb;
+  --color-mist-500: #8d877e;
+
+  --color-ember-50: #fff1e8;
+  --color-ember-100: #ffdfc8;
+  --color-ember-300: #ffa065;
+  --color-ember-400: #ff8142;
+  --color-ember-500: #ff6a2b;
+  --color-ember-600: #e8511a;
+  --color-ember-700: #c23f14;
+
+  --color-severity-low: #34d399;
+  --color-severity-medium: #fbbf24;
+  --color-severity-high: #fb923c;
+  --color-severity-critical: #f87171;
 }
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
-  background: #f4f7fb;
+  min-height: 100vh;
+  background-color: var(--color-ink-950);
+  background-image:
+    radial-gradient(680px circle at 88% -8%, rgba(255, 106, 43, 0.18), transparent 60%),
+    radial-gradient(520px circle at 4% 22%, rgba(255, 106, 43, 0.08), transparent 55%);
+  background-attachment: fixed;
+  color: var(--color-mist-100);
 }

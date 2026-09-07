@@ -1,7 +1,14 @@
-import { Link } from "react-router-dom";
-import type { Report } from "../types";
+import { Link2 } from "lucide-react";
+import type { Report, Severity } from "../types";
 import { PROBLEM_TYPE_LABELS } from "../types";
 import { SeverityBadge } from "./SeverityBadge";
+
+const ACCENT: Record<Severity, string> = {
+  low: "border-s-severity-low",
+  medium: "border-s-severity-medium",
+  high: "border-s-severity-high",
+  critical: "border-s-severity-critical",
+};
 
 function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -14,11 +21,20 @@ function relativeTime(iso: string): string {
   return `منذ ${days} يوم`;
 }
 
-export function ReportCard({ report }: { report: Report }) {
+export function ReportCard({
+  report,
+  linkedCount = 0,
+  onOpen,
+}: {
+  report: Report;
+  linkedCount?: number;
+  onOpen: (report: Report) => void;
+}) {
   return (
-    <Link
-      to={`/reports/${report.id}`}
-      className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+    <button
+      type="button"
+      onClick={() => onOpen(report)}
+      className={`flex w-full gap-3 rounded-2xl border-s-2 border border-white/8 bg-white/[0.03] p-3 text-start shadow-sm backdrop-blur-xl transition hover:bg-white/[0.06] ${ACCENT[report.analysis.severity]}`}
     >
       <img
         src={report.imageDataUrl}
@@ -27,20 +43,25 @@ export function ReportCard({ report }: { report: Report }) {
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate font-semibold text-slate-800">
+          <p className="truncate font-semibold text-mist-100">
             {PROBLEM_TYPE_LABELS[report.analysis.problemType]}
           </p>
-          <span className="shrink-0 text-xs text-slate-400">
+          <span className="shrink-0 text-xs text-mist-500">
             {relativeTime(report.createdAt)}
           </span>
         </div>
-        <p className="line-clamp-1 text-sm text-slate-500">
+        <p className="line-clamp-1 text-sm text-mist-500">
           {report.location || "بدون موقع محدد"}
         </p>
-        <div className="mt-1">
+        <div className="mt-1 flex items-center gap-2">
           <SeverityBadge severity={report.analysis.severity} />
+          {linkedCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2 py-0.5 text-xs font-medium text-mist-300">
+              <Link2 size={11} className="text-ember-400" />+{linkedCount} بلاغ مرتبط
+            </span>
+          )}
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
