@@ -26,7 +26,7 @@ export function FilterPanel({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="surface-panel flex items-center gap-1.5 rounded-lg border border-white/8 px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
+        className="surface-panel flex items-center gap-1.5 rounded-full border border-white/8 px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
       >
         <Filter size={14} />
         فلترة

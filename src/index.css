@@ -87,9 +87,15 @@ body {
    reproducible in CSS, so this leans on blur + a tracked highlight
    instead). See useGlassPointer for the highlight tracking.
 
-   Reserved for navigation chrome, floating panels/dropdowns, and marquee
-   cards — never dense data surfaces (tables, kanban, form inputs), where
-   translucency would hurt legibility; keep using .surface-panel there. */
+   Apple's own HIG (developer.apple.com/design/human-interface-guidelines/
+   materials) is explicit about scope: "Liquid Glass forms a distinct
+   functional layer for controls and navigation... Don't use Liquid Glass
+   in the content layer" and "use Liquid Glass effects sparingly... limit
+   these effects to the most important functional elements." So this is
+   for navigation chrome and floating/transient controls ONLY — the
+   header, the sidebar, dropdowns, modal scrims — never for content
+   (report cards, dashboard panels, tables, kanban, form inputs), which
+   stay on .surface-panel regardless of how "important" they look. */
 .glass-surface {
   position: relative;
   background: linear-gradient(175deg, rgba(32, 27, 23, 0.6), rgba(20, 17, 15, 0.72));
@@ -119,6 +125,22 @@ body {
   transition: opacity 0.5s ease;
 }
 
+/* Approximates Apple's "Scroll Edge Effect": content dissolving into a
+   floating glass surface instead of getting a hard clip as it scrolls
+   past. Drop as a child of a `.glass-surface` that's `sticky`/`fixed` —
+   it pins itself to that surface's bottom edge and fades into it. The
+   parent needs no extra positioning: sticky/fixed already establish the
+   containing block this absolute child positions against. */
+.scroll-edge-fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 28px;
+  transform: translateY(100%);
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(11, 9, 8, 0.55), transparent);
+}
+
 /* Apple's own HIG guidance for Liquid Glass: honor reduced-transparency
    and higher-contrast preferences with an opaque fallback rather than
    shipping glass unconditionally. */
@@ -131,6 +153,10 @@ body {
   }
 
   .glass-surface::after {
+    display: none;
+  }
+
+  .scroll-edge-fade {
     display: none;
   }
 }

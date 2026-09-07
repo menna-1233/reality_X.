@@ -20,8 +20,12 @@ const NAV = [
   { to: "/findings", end: false, icon: ClipboardList, label: "إدارة البلاغات" },
 ];
 
+// capsule, not rounded-lg: Apple's Liquid Glass controls default to a
+// capsule shape ("`.glassEffect()` applies the `.regular` variant in a
+// `.capsule` shape") — this pill is the nav's glass-layer active highlight,
+// the same role as a tab bar's sliding capsule indicator.
 function navLinkClass({ isActive }: { isActive: boolean }) {
-  return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+  return `flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium transition ${
     isActive
       ? "bg-accent-500/12 text-accent-400"
       : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
@@ -154,6 +158,7 @@ export function AppShell({
             </div>
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
+          <div className="scroll-edge-fade" aria-hidden="true" />
         </header>
 
         <main className="flex-1 p-4 md:p-6">{children}</main>
