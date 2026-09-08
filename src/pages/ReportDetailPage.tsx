@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { LocationLabel } from "../components/LocationLabel";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { StatusBadge } from "../components/StatusBadge";
 import { findLinkedReports } from "../lib/incidents";
@@ -94,7 +95,7 @@ export function ReportDetailPage() {
 
             {report.location && (
               <p className="flex items-center gap-1 text-sm text-slate-400">
-                <MapPin size={14} /> {report.location}
+                <MapPin size={14} /> <LocationLabel location={report.location} />
               </p>
             )}
 

@@ -1,7 +1,5 @@
 import {
   ClipboardList,
-  Eye,
-  HelpCircle,
   Inbox,
   LayoutDashboard,
   LogIn,
@@ -60,7 +58,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <>
       <div className="flex items-center gap-2 px-1">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-500 text-ink-950">
-          <Eye size={18} />
+          <X size={20} strokeWidth={3} />
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white">{t("common.appName")}</p>
@@ -72,7 +70,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         to="/"
         end
         onClick={onNavigate}
-        className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(240,85,42,0.6)] transition hover:bg-accent-600"
+        className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
       >
         <Send size={15} /> {t("nav.newReport")}
       </NavLink>
@@ -113,13 +111,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="space-y-2 border-t border-white/8 pt-3">
-        <a
-          href="#"
-          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
-        >
-          <HelpCircle size={16} />
-          {t("nav.help")}
-        </a>
         {isAdmin ? (
           <button
             type="button"

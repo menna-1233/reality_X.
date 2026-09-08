@@ -1,10 +1,10 @@
 import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { useGlassPointer } from "../hooks/useGlassPointer";
 import { problemTypeLabel } from "../lib/labels";
 import { formatRelativeTime } from "../lib/time";
 import type { Report, Severity } from "../types";
+import { LocationLabel } from "./LocationLabel";
 import { SeverityBadge } from "./SeverityBadge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -17,13 +17,11 @@ const STRIPE: Record<Severity, string> = {
 
 export function ReportCard({ report, linkedCount = 0 }: { report: Report; linkedCount?: number }) {
   const { t } = useTranslation();
-  const cardRef = useGlassPointer<HTMLAnchorElement>();
 
   return (
     <Link
-      ref={cardRef}
       to={`/reports/${report.id}`}
-      className={`glass-surface relative flex gap-3 overflow-hidden rounded-xl border border-white/8 p-3 pe-4 transition
+      className={`surface-panel relative flex gap-3 overflow-hidden rounded-xl border border-white/8 p-3 pe-4 transition
         before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full
         hover:border-accent-400/40 hover:bg-white/[0.04]
         ${STRIPE[report.analysis.severity]}`}
@@ -49,7 +47,7 @@ export function ReportCard({ report, linkedCount = 0 }: { report: Report; linked
         </div>
         <p className="line-clamp-1 flex items-center gap-1 text-sm text-slate-400">
           <span className="text-slate-500">📍</span>
-          {report.location || t("reportCard.noLocation")}
+          {report.location ? <LocationLabel location={report.location} /> : t("reportCard.noLocation")}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <SeverityBadge severity={report.analysis.severity} />

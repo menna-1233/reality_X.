@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
+import { reverseGeocode } from "../lib/geo";
 import { departmentLabel, problemTypeLabel, severityLabel } from "../lib/labels";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
@@ -28,16 +29,21 @@ export function ReportPage() {
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation(
-          `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`,
-        );
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        // Show coordinates immediately, then swap in the readable address
+        // once reverse-geocoding resolves (or keep the coordinates on failure).
+        setLocation(coords);
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) setLocation(address);
         setLocating(false);
       },
       () => {
         setLocation(t("reportPage.locationFailed"));
         setLocating(false);
       },
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 

@@ -11,8 +11,8 @@ from .routers import analyze, incidents, reports, stats
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 
 app = FastAPI(
-    title="UrbanEye AI API",
-    description="Backend for the UrbanEye AI Smart City hackathon MVP.",
+    title="RealityX API",
+    description="Backend for RealityX — Turning Real-World Problems into AI-Powered Solutions.",
     version="0.1.0",
 )
 
