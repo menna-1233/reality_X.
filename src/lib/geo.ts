@@ -12,11 +12,47 @@ export function parseLatLng(location: string): [number, number] | null {
 
 const geocodeCache = new Map<string, Promise<string | null>>();
 
+interface NominatimAddress {
+  house_number?: string;
+  road?: string;
+  neighbourhood?: string;
+  suburb?: string;
+  quarter?: string;
+  city_district?: string;
+  town?: string;
+  village?: string;
+  city?: string;
+  state?: string;
+}
+
+/**
+ * Builds a short, specific label from Nominatim's address parts instead of
+ * its `display_name` — `display_name` is the full postal chain (often
+ * starting with a building/POI name unrelated to the pin, sometimes in the
+ * wrong country's admin hierarchy for sparsely-mapped areas) which reads as
+ * vague or outright wrong. Picks the most precise street/area we got, plus
+ * one city-level part for context — at most 2-3 parts.
+ */
+function formatAddress(address: NominatimAddress): string | null {
+  const street = address.road
+    ? [address.house_number, address.road].filter(Boolean).join(" ")
+    : null;
+  const area = address.neighbourhood ?? address.quarter ?? address.suburb ?? address.city_district;
+  const city = address.city ?? address.town ?? address.village ?? address.state;
+
+  const parts = [street, area, city].filter((p): p is string => Boolean(p));
+  // De-dupe (Nominatim sometimes repeats the same name across levels).
+  const unique = [...new Set(parts)];
+  return unique.length > 0 ? unique.slice(0, 3).join("، ") : null;
+}
+
 /**
  * Turns coordinates into a human-readable place name (street/neighborhood/
  * city) via OpenStreetMap's free Nominatim reverse-geocoding API — no API
- * key needed. Falls back to `null` on any network/parsing failure so
- * callers can keep showing the raw "lat, lon" instead.
+ * key needed. Requests building-level zoom and structured address parts
+ * for a short, specific label (see formatAddress). Falls back to `null` on
+ * any network/parsing failure, or if Nominatim has no address data for the
+ * point, so callers can keep showing the raw "lat, lon" instead.
  */
 export function reverseGeocode(lat: number, lon: number): Promise<string | null> {
   const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
@@ -24,13 +60,10 @@ export function reverseGeocode(lat: number, lon: number): Promise<string | null>
   if (cached) return cached;
 
   const promise = fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ar`,
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=ar`,
   )
     .then((res) => (res.ok ? res.json() : null))
-    .then((data) => {
-      const address = data?.display_name as string | undefined;
-      return address ?? null;
-    })
+    .then((data) => (data?.address ? formatAddress(data.address) : null))
     .catch(() => null);
 
   geocodeCache.set(key, promise);

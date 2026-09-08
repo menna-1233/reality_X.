@@ -29,17 +29,21 @@ export function ReportPage() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
+        const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         // Show coordinates immediately, then swap in the readable address
         // once reverse-geocoding resolves (or keep the coordinates on failure).
-        setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        setLocation(coords);
         const address = await reverseGeocode(latitude, longitude);
-        if (address) setLocation(address);
+        // Keep the raw coordinates alongside the name so it can be checked
+        // against a map — the label is only as accurate as the device's GPS fix.
+        if (address) setLocation(`${address} (${coords})`);
         setLocating(false);
       },
       () => {
         setLocation("تعذر تحديد الموقع");
         setLocating(false);
       },
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
