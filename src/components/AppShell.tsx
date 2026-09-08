@@ -60,13 +60,8 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const adminStatus = useAdminSession();
   const isAdmin = adminStatus === "in";
-  // The report route already has its own "Report" tab in the nav list below —
-  // showing this big button on top of it duplicates the same destination
-  // twice on one screen, so it only appears when the user is elsewhere.
-  const onReportRoute = location.pathname === "/";
 
   async function handleSignOut() {
     await signOutAdmin();
@@ -85,17 +80,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <p className="truncate text-[11px] text-slate-500">{t("common.tagline")}</p>
         </div>
       </div>
-
-      {!onReportRoute && (
-        <NavLink
-          to="/"
-          end
-          onClick={onNavigate}
-          className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
-        >
-          <Send size={15} /> {t("nav.newReport")}
-        </NavLink>
-      )}
 
       <nav className="flex flex-1 flex-col gap-0.5">
         {PUBLIC_NAV.map((item) => (
