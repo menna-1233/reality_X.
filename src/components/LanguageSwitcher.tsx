@@ -14,7 +14,7 @@ export function LanguageSwitcher() {
     <div
       role="group"
       aria-label={t("common.language")}
-      className="surface-panel flex shrink-0 items-center gap-0.5 rounded-full border border-white/8 p-0.5"
+      className="surface-panel grid grid-cols-2 gap-0.5 rounded-full border border-white/8 p-0.5"
     >
       {LANGUAGES.map((lng) => (
         <button
@@ -22,10 +22,10 @@ export function LanguageSwitcher() {
           type="button"
           onClick={() => i18n.changeLanguage(lng.code)}
           aria-pressed={current === lng.code}
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+          className={`rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
             current === lng.code
               ? "bg-accent-500 text-white"
-              : "text-slate-400 hover:text-white"
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
           {lng.label}

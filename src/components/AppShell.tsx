@@ -13,7 +13,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useGlassPointer } from "../hooks/useGlassPointer";
 import { signOutAdmin } from "../lib/adminAuth";
 import { useAdminSession } from "../lib/useAdminSession";
@@ -36,10 +36,13 @@ const SIDEBAR_COLLAPSED_KEY = "urbaneye.sidebarCollapsed";
 
 function readStoredSidebarCollapsed(): boolean {
   try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+    const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored !== null) return stored === "true";
   } catch {
-    return false;
+    // localStorage unavailable — fall through to the default
   }
+  // Collapsed by default for anyone who hasn't explicitly toggled it.
+  return true;
 }
 
 // capsule, not rounded-lg: Apple's Liquid Glass controls default to a
@@ -57,8 +60,13 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const adminStatus = useAdminSession();
   const isAdmin = adminStatus === "in";
+  // The report route already has its own "Report" tab in the nav list below —
+  // showing this big button on top of it duplicates the same destination
+  // twice on one screen, so it only appears when the user is elsewhere.
+  const onReportRoute = location.pathname === "/";
 
   async function handleSignOut() {
     await signOutAdmin();
@@ -78,14 +86,16 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <NavLink
-        to="/"
-        end
-        onClick={onNavigate}
-        className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
-      >
-        <Send size={15} /> {t("nav.newReport")}
-      </NavLink>
+      {!onReportRoute && (
+        <NavLink
+          to="/"
+          end
+          onClick={onNavigate}
+          className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
+        >
+          <Send size={15} /> {t("nav.newReport")}
+        </NavLink>
+      )}
 
       <nav className="flex flex-1 flex-col gap-0.5">
         {PUBLIC_NAV.map((item) => (
@@ -143,6 +153,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </NavLink>
         )}
       </div>
+
+      <div className="border-t border-white/8 pt-3">
+        <LanguageSwitcher />
+      </div>
     </>
   );
 }
@@ -159,10 +173,24 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredSidebarCollapsed);
+  const [lastRoute, setLastRoute] = useState(location.pathname);
   const sidebarRef = useGlassPointer<HTMLElement>();
   const headerRef = useGlassPointer<HTMLElement>();
+
+  // The report form needs all the horizontal room it can get, so collapse
+  // the sidebar automatically the moment the user navigates there — they
+  // can still reopen it with the toggle below if they need the nav. Adjusted
+  // during render (not an effect) so it lands in the same commit as the
+  // navigation instead of causing an extra render pass.
+  if (location.pathname !== lastRoute) {
+    setLastRoute(location.pathname);
+    if (location.pathname === "/") {
+      setSidebarCollapsed(true);
+    }
+  }
 
   function toggleSidebar() {
     setSidebarCollapsed((collapsed) => {
@@ -236,10 +264,7 @@ export function AppShell({
               <h1 className="text-lg font-bold text-white md:text-xl">{title}</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {actions}
-            <LanguageSwitcher />
-          </div>
+          <div className="flex items-center gap-2">{actions}</div>
           <div className="scroll-edge-fade" aria-hidden="true" />
         </header>
 

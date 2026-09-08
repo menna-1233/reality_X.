@@ -59,12 +59,15 @@ html[dir="ltr"] {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Apple's actual dark surfaces (macOS/iOS systemBackground) are a neutral,
+   near-black gray — the color comes from accent highlights on individual
+   controls, never a tinted wash across the whole page. A faint radial glow
+   keeps a touch of depth without reading as "colored background". */
 body {
   margin: 0;
   background: var(--color-ink-950);
   background-image:
-    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(240, 85, 42, 0.10), transparent),
-    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(240, 85, 42, 0.05), transparent);
+    radial-gradient(ellipse 1000px 600px at 50% -20%, rgba(255, 255, 255, 0.025), transparent);
   background-attachment: fixed;
 }
 

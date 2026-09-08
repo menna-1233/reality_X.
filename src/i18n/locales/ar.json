@@ -84,7 +84,7 @@
   "photoDropzone": {
     "imageAlt": "الصورة المرفقة",
     "removePhoto": "إزالة الصورة",
-    "addPhotoPrompt": "اضغط لإضافة صورة المشكلة"
+    "addPhotoPrompt": "اسحب وأفلت صورة هنا، أو اضغط للاختيار"
   },
   "filterPanel": {
     "filter": "فلترة"

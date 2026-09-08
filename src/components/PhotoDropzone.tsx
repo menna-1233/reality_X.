@@ -1,5 +1,5 @@
 import { Camera, X } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface Props {
@@ -10,6 +10,24 @@ interface Props {
 export function PhotoDropzone({ value, onChange }: Props) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  function handleDragOver(e: React.DragEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) onChange(file);
+  }
 
   const previewUrl = useMemo(() => (value ? URL.createObjectURL(value) : null), [value]);
   useEffect(() => {
@@ -38,10 +56,17 @@ export function PhotoDropzone({ value, onChange }: Props) {
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="surface-panel flex h-56 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-accent-400/30 text-accent-400 transition hover:bg-white/[0.04]"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`surface-panel flex h-56 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-accent-400 transition ${
+        isDragging
+          ? "border-accent-400 bg-accent-500/10"
+          : "border-accent-400/30 hover:bg-white/[0.04]"
+      }`}
     >
       <Camera size={32} />
-      <span className="font-medium">{t("photoDropzone.addPhotoPrompt")}</span>
+      <span className="text-center font-medium">{t("photoDropzone.addPhotoPrompt")}</span>
       <span className="text-xs text-accent-400/70">JPG, PNG</span>
       <input
         ref={inputRef}
