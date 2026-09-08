@@ -60,8 +60,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <Eye size={18} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-white">UrbanEye AI</p>
-          <p className="truncate text-[11px] text-slate-500">عين ذكية على مجتمعك</p>
+          <p className="truncate text-sm font-bold text-white">RealityX</p>
+          <p className="truncate text-[11px] text-slate-500">
+            نحوّل مشاكل الواقع إلى حلول ذكاء اصطناعي
+          </p>
         </div>
       </div>
 
@@ -69,7 +71,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         to="/"
         end
         onClick={onNavigate}
-        className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(240,85,42,0.6)] transition hover:bg-accent-600"
+        className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
       >
         <Send size={15} /> بلاغ جديد
       </NavLink>
