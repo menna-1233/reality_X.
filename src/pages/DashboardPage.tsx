@@ -41,6 +41,19 @@ function reportCoords(r: Report): [number, number] | null {
   return r.latitude != null && r.longitude != null ? [r.latitude, r.longitude] : null;
 }
 
+// Popup content is raw HTML handed to Leaflet's bindPopup (it doesn't go
+// through React, so nothing here is auto-escaped) — location is free text a
+// citizen typed, so it must be escaped before landing in that string or a
+// report could plant a stored XSS against whoever opens this dashboard.
+function escapeHtml(s: string): string {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
@@ -168,10 +181,13 @@ export function DashboardPage() {
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 15);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
+    // CARTO's dark basemap instead of CSS-inverting the standard OSM tiles —
+    // the invert filter left water/land hues wrong and text looking washed
+    // out; this is an actual dark-styled map, legible and not "off".
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
       maxZoom: 19,
-      className: "map-tiles-dark",
     }).addTo(map);
     markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -205,19 +221,24 @@ export function DashboardPage() {
       }
 
       const dir = i18n.dir();
+      const severityColor = SEVERITY_COLOR[r.analysis.severity];
       L.circleMarker(latLng, {
         radius: 8,
         color: "#14110f",
         weight: 2,
-        fillColor: SEVERITY_COLOR[r.analysis.severity],
+        fillColor: severityColor,
         fillOpacity: 0.95,
       })
         .bindPopup(
-          `<div style="font-family:Cairo,sans-serif;direction:${dir};min-width:160px">` +
-            `<b>${problemTypeLabel(t, r.analysis.problemType)}</b><br/>` +
-            `<span style="color:#94a3b8;font-size:12px">${r.location}</span><br/>` +
-            `<span style="font-size:12px">${severityLabel(t, r.analysis.severity)} · ${formatRelativeTime(r.createdAt, t)}</span>` +
-            `</div>`,
+          `<a href="/reports/${r.id}" style="display:flex;gap:10px;align-items:flex-start;direction:${dir};min-width:190px;max-width:220px;text-decoration:none;color:inherit">` +
+            `<img src="${escapeHtml(r.imageDataUrl)}" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#201b17" />` +
+            `<span style="min-width:0">` +
+              `<span style="display:block;font-weight:600;font-size:13px;color:#f1f5f9">${problemTypeLabel(t, r.analysis.problemType)}</span>` +
+              `<span style="display:block;margin-top:2px;font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.location)}</span>` +
+              `<span style="display:block;margin-top:4px;font-size:11px;color:${severityColor};font-weight:600">${severityLabel(t, r.analysis.severity)}</span>` +
+              `<span style="display:block;margin-top:1px;font-size:10px;color:#64748b">${formatRelativeTime(r.createdAt, t)}</span>` +
+            `</span>` +
+          `</a>`,
         )
         .addTo(layer);
     }

@@ -170,6 +170,44 @@ function parseLanguage(value: FormDataEntryValue | null): Language {
   return value === "en" ? "en" : "ar";
 }
 
+// ---------------- forward geocoding ----------------
+//
+// The report form sends coordinates whenever it has them (from "use my
+// location"), but a citizen can also just type an address by hand with no
+// coordinates at all. Without this, that report could never be placed on
+// the dashboard map. Best-effort: resolves the typed text to coordinates
+// via OSM's free Nominatim geocoder when none were supplied; on any
+// failure (no match, network error, timeout) the report is still created
+// with location_text alone, same as before this existed.
+async function geocodeAddress(query: string): Promise<[number, number] | null> {
+  try {
+    // Commas confuse Nominatim's free-form query parser more often than
+    // they help (e.g. "طريق القاهرة, الاسكندرية الزراعى، طوخ" matches
+    // nothing, but the same text with commas stripped matches cleanly).
+    const cleaned = query.replace(/[,،]/g, " ").replace(/\s+/g, " ").trim();
+    if (!cleaned) return null;
+
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(cleaned)}`,
+      {
+        // Nominatim's usage policy requires an identifying User-Agent.
+        headers: { "User-Agent": "UrbanEyeAI/1.0 (Supabase Edge Function)" },
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+    if (!res.ok) return null;
+
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const lat = Number(results[0].lat);
+    const lon = Number(results[0].lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return [lat, lon];
+  } catch {
+    return null;
+  }
+}
+
 // ---------------- incident grouping (port of app/incidents.py) ----------------
 
 const RADIUS_METERS = 80;
@@ -546,12 +584,20 @@ Deno.serve(async (req) => {
         const locationText = String(form.get("location_text") ?? "").trim();
         const latRaw = form.get("latitude");
         const lngRaw = form.get("longitude");
-        const latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
-        const longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
+        let latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
+        let longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
         // Location is either coordinates (from "use my location") or typed
         // text — the citizen must supply one or the other, not neither.
         if (latitude == null && longitude == null && !locationText) {
           return json({ detail: "location is required" }, 422);
+        }
+        // No coordinates yet means the citizen typed an address by hand
+        // (not "use my location") — best-effort resolve it so this report
+        // can still be placed on the dashboard map. Never blocks creation
+        // if it fails; the report just keeps location_text alone.
+        if (latitude == null && longitude == null && locationText) {
+          const geocoded = await geocodeAddress(locationText);
+          if (geocoded) [latitude, longitude] = geocoded;
         }
         const communityId = String(form.get("community_id") ?? "") || DEFAULT_COMMUNITY_ID;
         const language = parseLanguage(form.get("language"));
