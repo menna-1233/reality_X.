@@ -234,22 +234,22 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header
           ref={headerRef}
-          className="glass-surface sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6"
+          className="glass-surface sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-3 py-2 md:px-5"
         >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:hidden"
+              className="rounded-lg p-1 text-slate-400 hover:bg-white/5 md:hidden"
               aria-label={t("nav.openMenu")}
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
             <button
               onClick={toggleSidebar}
-              className="hidden rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:flex"
+              className="hidden rounded-lg p-1 text-slate-400 hover:bg-white/5 md:flex"
               aria-label={sidebarCollapsed ? t("nav.openMenu") : t("nav.closeMenu")}
             >
-              {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
             <div>
               {breadcrumbs && breadcrumbs.length > 0 && (
@@ -257,7 +257,7 @@ export function AppShell({
                   {breadcrumbs.join(" / ")}
                 </p>
               )}
-              <h1 className="text-lg font-bold text-white md:text-xl">{title}</h1>
+              <h1 className="text-base font-bold text-white md:text-lg">{title}</h1>
             </div>
           </div>
           <div className="ms-auto flex items-center gap-2">{actions}</div>

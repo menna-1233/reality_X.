@@ -50,7 +50,7 @@ export function FeedPage() {
   const linkedLookup = useMemo(() => buildLinkedReportsLookup(reports), [reports]);
 
   return (
-    <AppShell title={t("common.allReports")} breadcrumbs={[t("nav.reports")]}>
+    <AppShell title={t("common.allReports")}>
       <div className="mx-auto max-w-5xl space-y-4">
         <p className="text-sm text-slate-400">{t("feedPage.subtitle")}</p>
 

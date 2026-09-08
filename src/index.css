@@ -189,6 +189,24 @@ body {
   }
 }
 
+/* OSM raster tiles ship light by default — this repo's map always renders on
+   the dark ink background, so the tile layer gets an inverted/desaturated
+   filter to read as a dark basemap instead of a jarring light rectangle. */
+.map-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.6);
+}
+
+/* Leaflet's default attribution control ships a light (near-white) pill —
+   glaring against the dark map/app background. Override to match the app's
+   ink palette instead of the light default. */
+.leaflet-control-attribution {
+  background: rgba(11, 9, 8, 0.7) !important;
+  color: #94a3b8 !important;
+}
+.leaflet-control-attribution a {
+  color: #cbd5e1 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

@@ -50,7 +50,7 @@ export function ReportDetailPage() {
 
   if (report === null) {
     return (
-      <AppShell title={t("reportDetailPage.notFoundTitle")} breadcrumbs={[t("nav.reports")]}>
+      <AppShell title={t("reportDetailPage.notFoundTitle")}>
         <div className="mx-auto max-w-lg space-y-4 py-10 text-center text-slate-400">
           <p>{t("reportDetailPage.notFoundBody")}</p>
           <Link to="/feed" className="text-accent-400 underline">
@@ -68,7 +68,7 @@ export function ReportDetailPage() {
   return (
     <AppShell
       title={problemTypeLabel(t, report.analysis.problemType)}
-      breadcrumbs={[t("nav.reports"), `#${report.id.slice(0, 6)}`]}
+      breadcrumbs={[`#${report.id.slice(0, 6)}`]}
     >
       <div className="mx-auto max-w-lg space-y-4">
         <Link to="/feed" className="inline-flex items-center gap-1 text-sm text-accent-400">
