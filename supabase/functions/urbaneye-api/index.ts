@@ -5,6 +5,7 @@
 // mock-AI heuristic, incident grouping and notification logic.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import * as XLSX from "npm:xlsx@0.18.5";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -283,6 +284,71 @@ async function maybeNotify(opts: {
   });
 }
 
+// ---------------- Excel export (port of backend/app/excel_export.py) ----------------
+
+const EXCEL_HEADERS = [
+  "رقم البلاغ",
+  "تاريخ البلاغ",
+  "نوع المشكلة",
+  "درجة الخطورة",
+  "الإدارة المسؤولة",
+  "الوصف",
+  "الموقع",
+  "ملخص AI",
+  "نسبة الثقة",
+  "الحالة",
+  "رابط الصورة",
+];
+
+const PROBLEM_TYPE_AR: Record<string, string> = {
+  pothole: "حفرة",
+  garbage: "قمامة",
+  water_leak: "تسريب مياه",
+  broken_light: "إنارة معطلة",
+  accident: "حادث",
+  other: "أخرى",
+};
+
+const SEVERITY_AR_MAP: Record<string, string> = {
+  low: "منخفضة",
+  medium: "متوسطة",
+  high: "عالية",
+  critical: "حرجة",
+};
+
+const STATUS_AR: Record<string, string> = {
+  open: "مفتوح",
+  in_progress: "قيد المعالجة",
+  resolved: "تم الحل",
+  closed: "مغلق",
+};
+
+// deno-lint-ignore no-explicit-any
+function buildReportsExcel(reports: any[]): Uint8Array {
+  const rows = [
+    EXCEL_HEADERS,
+    ...reports.map((r) => [
+      String(r.id ?? "").slice(0, 8),
+      String(r.created_at ?? "").slice(0, 19).replace("T", " "),
+      PROBLEM_TYPE_AR[r.problem_type] ?? r.problem_type ?? "",
+      SEVERITY_AR_MAP[r.severity] ?? r.severity ?? "",
+      r.department ?? "",
+      r.description ?? "",
+      r.location_text ?? "",
+      r.ai_summary ?? "",
+      r.confidence != null ? `${Math.round(r.confidence * 100)}%` : "",
+      STATUS_AR[r.status] ?? r.status ?? "",
+      r.image_url ?? "",
+    ]),
+  ];
+
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet["!cols"] = [12, 18, 14, 12, 24, 35, 20, 35, 10, 14, 40].map((wch) => ({ wch }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "البلاغات");
+  return XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+}
+
 // ---------------- HTTP routing ----------------
 
 function stripPrefix(pathname: string): string {
@@ -310,6 +376,31 @@ Deno.serve(async (req) => {
     }
 
     if (parts[0] === "reports") {
+      if (parts.length === 3 && parts[1] === "export" && parts[2] === "excel" && req.method === "GET") {
+        const communityId = url.searchParams.get("community_id") || DEFAULT_COMMUNITY_ID;
+        const status = url.searchParams.get("status");
+        const severity = url.searchParams.get("severity");
+        let query = client
+          .from("reports")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .eq("community_id", communityId);
+        if (status) query = query.eq("status", status);
+        if (severity) query = query.eq("severity", severity);
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const excelBytes = buildReportsExcel(data ?? []);
+        return new Response(excelBytes, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": "attachment; filename=urbaneye_reports.xlsx",
+          },
+        });
+      }
+
       if (parts.length === 1 && req.method === "POST") {
         const form = await req.formData();
         const image = form.get("image") as File | null;
