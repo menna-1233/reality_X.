@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  Eye,
   HelpCircle,
   Inbox,
   LayoutDashboard,
@@ -57,7 +56,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <>
       <div className="flex items-center gap-2 px-1">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-500 text-ink-950">
-          <Eye size={18} />
+          <X size={20} strokeWidth={3} />
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white">RealityX</p>
