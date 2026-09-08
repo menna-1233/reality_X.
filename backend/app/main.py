@@ -1,7 +1,14 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import analyze, incidents, reports, stats
+
+# So app-level logging (AI backend fallbacks, email notifications, etc.)
+# shows up alongside uvicorn's own request logs instead of being silently
+# dropped by the default "no handler configured" root logger.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 
 app = FastAPI(
     title="RealityX API",

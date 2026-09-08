@@ -1,7 +1,21 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Set lang/dir before first paint so a returning visitor who switched
+      // to Arabic doesn't see a flash of English/LTR on reload. Kept in sync
+      // with the "urbaneye.lang" logic in src/i18n/config.ts. English is the
+      // default; only Arabic needs an explicit override here.
+      (function () {
+        try {
+          if (window.localStorage.getItem("urbaneye.lang") === "ar") {
+            document.documentElement.lang = "ar";
+            document.documentElement.dir = "rtl";
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b0908" />

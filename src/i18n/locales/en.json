@@ -1,0 +1,183 @@
+{
+  "common": {
+    "appName": "RealityX",
+    "tagline": "Turning real-world problems into AI-powered solutions",
+    "all": "All",
+    "allReports": "All Reports",
+    "searchPlaceholder": "Search reports...",
+    "department": "Responsible department",
+    "confidence": "Confidence",
+    "location": "Location",
+    "noData": "No data",
+    "severityLabel": "Severity",
+    "statusLabel": "Status",
+    "baselineLastWeek": "from last week",
+    "language": "Language"
+  },
+  "nav": {
+    "report": "Report",
+    "reports": "Reports",
+    "overview": "Overview",
+    "manageReports": "Manage Reports",
+    "adminSection": "Admin",
+    "newReport": "New Report",
+    "help": "Help & Docs",
+    "adminSignOut": "Sign Out (Admin)",
+    "adminLogin": "Admin Login",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "problemType": {
+    "pothole": "Pothole",
+    "garbage": "Garbage buildup",
+    "water_leak": "Water leak",
+    "broken_light": "Broken streetlight",
+    "accident": "Accident",
+    "other": "Other issue"
+  },
+  "department": {
+    "pothole": "Roads & Maintenance Department",
+    "garbage": "Sanitation Department",
+    "water_leak": "Maintenance & Utilities Department",
+    "broken_light": "Electrical Department",
+    "accident": "Security & Emergency Response",
+    "other": "General Administration"
+  },
+  "severity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "status": {
+    "open": "Open",
+    "in_progress": "In Progress",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "event": {
+    "created": "Report created",
+    "analyzed": "Analyzed by AI",
+    "status_changed": "Status changed"
+  },
+  "time": {
+    "now": "Just now",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  },
+  "photoDropzone": {
+    "imageAlt": "Attached photo",
+    "removePhoto": "Remove photo",
+    "addPhotoPrompt": "Tap to add a photo of the problem"
+  },
+  "filterPanel": {
+    "filter": "Filter"
+  },
+  "activityFeed": {
+    "noActivity": "No activity yet"
+  },
+  "slideOver": {
+    "close": "Close"
+  },
+  "requireAdmin": {
+    "checking": "Checking..."
+  },
+  "reportCard": {
+    "noLocation": "No location specified"
+  },
+  "adminLoginPage": {
+    "email": "Email",
+    "password": "Password",
+    "signInError": "Couldn't sign in.",
+    "signingIn": "Signing in...",
+    "signIn": "Sign in"
+  },
+  "reportPage": {
+    "title": "Report an Issue",
+    "subtitle": "Snap a photo of the problem and the AI will automatically identify its type, severity, and the responsible department.",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "e.g. There's a water leak near the main entrance",
+    "locationLabel": "Location",
+    "locationPlaceholder": "e.g. Building 5 - back garden",
+    "useMyLocation": "My location",
+    "locationUnavailable": "Location isn't available on this device",
+    "locationFailed": "Couldn't determine your location",
+    "imageRequiredError": "Please add a photo showing the problem",
+    "submitError": "Something went wrong while sending your report. Check that the backend is reachable and try again",
+    "analyzing": "AI is analyzing the photo...",
+    "submit": "Send Report",
+    "resultTitle": "Analysis Result",
+    "resultBadge": "AI analysis result (demo output)",
+    "reportImageAlt": "Report photo",
+    "rowType": "Issue type",
+    "rowSeverity": "Severity",
+    "viewAllReports": "View all reports"
+  },
+  "feedPage": {
+    "subtitle": "Every report here is analyzed by AI and sent to compound management automatically.",
+    "openReportsSuffix": "open reports",
+    "criticalSuffix": "critical",
+    "needsResponseToday": "need a response today",
+    "emptyNoReports": "No reports yet — try sending one",
+    "emptyNoMatch": "No reports match this filter right now"
+  },
+  "reportDetailPage": {
+    "notFoundTitle": "Report not found",
+    "notFoundBody": "Report not found",
+    "backToAll": "Back to all reports",
+    "aiAnalysis": "AI Analysis",
+    "statusTrail": "Status trail",
+    "closedNotice": "This report was closed without being marked resolved.",
+    "trailReported": "Reported",
+    "linkedNotice_zero": "The AI hasn't linked this report to any other report about the same issue",
+    "linkedNotice_one": "The AI linked this report with {{count}} other report about the same issue",
+    "linkedNotice_two": "The AI linked this report with {{count}} other reports about the same issue",
+    "linkedNotice_few": "The AI linked this report with {{count}} other reports about the same issue",
+    "linkedNotice_many": "The AI linked this report with {{count}} other reports about the same issue",
+    "linkedNotice_other": "The AI linked this report with {{count}} other reports about the same issue"
+  },
+  "dashboardPage": {
+    "exportExcel": "Download Excel",
+    "statTotal": "Total reports",
+    "statLinked": "Linked reports",
+    "resolutionRate": "Resolution rate",
+    "resolutionRateCaption": "Of all current reports",
+    "avgOpenAge": "Average age of open reports",
+    "hoursUnit": "{{value}} hours",
+    "daysUnit": "{{value}} days",
+    "trendCaption": "New reports in the last 7 days",
+    "recentActivity": "Recent activity",
+    "unmappedSuffix": "reports without precise coordinates",
+    "openCriticalAlerts": "Open critical reports",
+    "noCriticalAlerts": "No critical reports open right now 👍",
+    "byType": "Reports by issue type"
+  },
+  "findingsPage": {
+    "kanban": "Kanban",
+    "table": "Table",
+    "noMatch": "No reports match this filter!",
+    "clearFilters": "Clear filters",
+    "colId": "ID",
+    "colType": "Type",
+    "colDepartment": "Department",
+    "colDate": "Date",
+    "changeStatus": "Change status",
+    "tabSummary": "Summary",
+    "tabEvidence": "Evidence",
+    "tabHistory": "History",
+    "noDescription": "No description",
+    "noLocation": "No location",
+    "uploadedPrefix": "Uploaded",
+    "aiAnalysisPrefix": "AI analysis:",
+    "linkedNotice_zero": "The AI hasn't linked this report to any other report",
+    "linkedNotice_one": "The AI linked this report with {{count}} other report",
+    "linkedNotice_two": "The AI linked this report with {{count}} other reports",
+    "linkedNotice_few": "The AI linked this report with {{count}} other reports",
+    "linkedNotice_many": "The AI linked this report with {{count}} other reports",
+    "linkedNotice_other": "The AI linked this report with {{count}} other reports"
+  }
+}

@@ -17,7 +17,7 @@ quota exceeded, network error) so the demo never breaks.
 import json
 import logging
 
-from .mock_ai import analyze as run_mock_ai
+from .mock_ai import Language, analyze as run_mock_ai
 from .schemas import Analysis, ProblemType, Severity
 from .settings import settings
 
@@ -33,16 +33,27 @@ _PROBLEM_TYPES: list[ProblemType] = [
 ]
 _SEVERITIES: list[Severity] = ["low", "medium", "high", "critical"]
 
-_DEPARTMENTS: dict[ProblemType, str] = {
-    "pothole": "إدارة الصيانة والطرق",
-    "garbage": "إدارة النظافة",
-    "water_leak": "إدارة الصيانة والمرافق",
-    "broken_light": "إدارة الكهرباء",
-    "accident": "الأمن وإدارة الطوارئ",
-    "other": "الإدارة العامة",
+_DEPARTMENTS: dict[Language, dict[ProblemType, str]] = {
+    "ar": {
+        "pothole": "إدارة الصيانة والطرق",
+        "garbage": "إدارة النظافة",
+        "water_leak": "إدارة الصيانة والمرافق",
+        "broken_light": "إدارة الكهرباء",
+        "accident": "الأمن وإدارة الطوارئ",
+        "other": "الإدارة العامة",
+    },
+    "en": {
+        "pothole": "Roads & Maintenance Department",
+        "garbage": "Sanitation Department",
+        "water_leak": "Maintenance & Utilities Department",
+        "broken_light": "Electrical Department",
+        "accident": "Security & Emergency Response",
+        "other": "General Administration",
+    },
 }
 
-_SYSTEM_PROMPT = """أنت نظام تصنيف بلاغات مشاكل مدينة ذكية (Smart City).
+_SYSTEM_PROMPT: dict[Language, str] = {
+    "ar": """أنت نظام تصنيف بلاغات مشاكل مدينة ذكية (Smart City).
 حلّل وصف المشكلة المرسلة من المواطن وارجع JSON فقط بدون أي نص إضافي بالشكل التالي:
 
 {
@@ -52,10 +63,23 @@ _SYSTEM_PROMPT = """أنت نظام تصنيف بلاغات مشاكل مدين�
   "summary": "<ملخص قصير بالعربية عن المشكلة>"
 }
 
-اختر problem_type الأقرب للمشكلة. ارجع JSON فقط."""
+اختر problem_type الأقرب للمشكلة. ارجع JSON فقط.""",
+    "en": """You are a smart-city issue-report classifier.
+Analyze the citizen's description of the problem and return JSON only, with no
+extra text, in exactly this shape:
+
+{
+  "problem_type": "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other",
+  "severity": "low" | "medium" | "high" | "critical",
+  "confidence": <decimal number between 0 and 1>,
+  "summary": "<short summary in English of the issue>"
+}
+
+Pick the problem_type closest to the issue. Return JSON only.""",
+}
 
 
-def _parse_response(raw_text: str) -> Analysis:
+def _parse_response(raw_text: str, language: Language) -> Analysis:
     # Strip markdown code fences if the model wraps output in ```json ... ```
     text = raw_text.strip()
     if text.startswith("```"):
@@ -80,37 +104,44 @@ def _parse_response(raw_text: str) -> Analysis:
     except (TypeError, ValueError):
         confidence = 0.75
 
-    summary = data.get("summary") or "تم تحليل البلاغ بواسطة الذكاء الاصطناعي."
+    fallback_summary = (
+        "تم تحليل البلاغ بواسطة الذكاء الاصطناعي."
+        if language == "ar"
+        else "The report was analyzed by AI."
+    )
+    summary = data.get("summary") or fallback_summary
 
     return Analysis(
         problem_type=problem_type,
         severity=severity,
-        department=_DEPARTMENTS[problem_type],
+        department=_DEPARTMENTS[language][problem_type],
         confidence=round(confidence, 2),
         summary=summary,
     )
 
 
-def analyze(description: str, image_bytes: bytes | None = None) -> Analysis:
+def analyze(description: str, image_bytes: bytes | None = None, language: Language = "ar") -> Analysis:
     """Classify a report using Groq's free cloud inference API.
 
     Falls back to the keyword-heuristic mock on any failure.
     """
     if not settings.groq_api_key:
         logger.warning("GROQ_API_KEY not set — falling back to mock AI")
-        return run_mock_ai(description)
+        return run_mock_ai(description, language)
 
     try:
         from groq import Groq  # imported lazily so missing package → fallback
 
         client = Groq(api_key=settings.groq_api_key)
+        user_prefix = "وصف المواطن" if language == "ar" else "Citizen's description"
+        no_description = "بدون وصف" if language == "ar" else "no description"
         response = client.chat.completions.create(
             model=settings.groq_model,
             messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "system", "content": _SYSTEM_PROMPT[language]},
                 {
                     "role": "user",
-                    "content": f"وصف المواطن: {description or 'بدون وصف'}",
+                    "content": f"{user_prefix}: {description or no_description}",
                 },
             ],
             response_format={"type": "json_object"},
@@ -118,7 +149,7 @@ def analyze(description: str, image_bytes: bytes | None = None) -> Analysis:
             max_tokens=256,
         )
         raw_text = response.choices[0].message.content or ""
-        return _parse_response(raw_text)
+        return _parse_response(raw_text, language)
     except Exception:  # noqa: BLE001
         logger.exception("Groq analysis failed, falling back to mock AI")
-        return run_mock_ai(description)
+        return run_mock_ai(description, language)

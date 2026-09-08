@@ -1,16 +1,18 @@
 import { Loader2, MapPin, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
 import { reverseGeocode } from "../lib/geo";
+import { departmentLabel, problemTypeLabel, severityLabel } from "../lib/labels";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
-import { PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
 
 type Status = "idle" | "analyzing" | "done";
 
 export function ReportPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -22,7 +24,7 @@ export function ReportPage() {
 
   function useMyLocation() {
     if (!navigator.geolocation) {
-      setLocation("الموقع غير متاح على هذا الجهاز");
+      setLocation(t("reportPage.locationUnavailable"));
       return;
     }
     setLocating(true);
@@ -38,7 +40,7 @@ export function ReportPage() {
         setLocating(false);
       },
       () => {
-        setLocation("تعذر تحديد الموقع");
+        setLocation(t("reportPage.locationFailed"));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -49,7 +51,7 @@ export function ReportPage() {
     e.preventDefault();
     setError(null);
     if (!imageFile) {
-      setError("من فضلك أضف صورة توضح المشكلة");
+      setError(t("reportPage.imageRequiredError"));
       return;
     }
     setStatus("analyzing");
@@ -60,7 +62,7 @@ export function ReportPage() {
       setLastReport(report);
       setStatus("done");
     } catch {
-      setError("حدث خطأ أثناء إرسال البلاغ، تأكد من اتصال الباك إند وحاول مرة أخرى");
+      setError(t("reportPage.submitError"));
       setStatus("idle");
     }
   }
@@ -75,25 +77,25 @@ export function ReportPage() {
 
   if (status === "done" && lastReport) {
     return (
-      <AppShell title="نتيجة التحليل">
+      <AppShell title={t("reportPage.resultTitle")} breadcrumbs={[t("nav.report")]}>
         <div className="mx-auto max-w-lg space-y-4">
           <div className="surface-panel rounded-xl border border-accent-400/20 p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-accent-400">
-              <Sparkles size={16} /> نتيجة تحليل الـ AI (نتيجة تجريبية للعرض)
+              <Sparkles size={16} /> {t("reportPage.resultBadge")}
             </p>
           </div>
           <div className="surface-panel overflow-hidden rounded-xl border border-white/8">
             <img
               src={lastReport.imageDataUrl}
-              alt="صورة البلاغ"
+              alt={t("reportPage.reportImageAlt")}
               className="h-48 w-full object-cover"
             />
             <div className="space-y-3 p-4">
-              <Row label="نوع المشكلة" value={typeLabel(lastReport)} />
-              <Row label="درجة الخطورة" value={severityLabel(lastReport)} />
-              <Row label="الجهة المسؤولة" value={lastReport.analysis.department} />
+              <Row label={t("reportPage.rowType")} value={problemTypeLabel(t, lastReport.analysis.problemType)} />
+              <Row label={t("reportPage.rowSeverity")} value={severityLabel(t, lastReport.analysis.severity)} />
+              <Row label={t("common.department")} value={departmentLabel(t, lastReport.analysis.problemType)} />
               <Row
-                label="نسبة الثقة"
+                label={t("common.confidence")}
                 value={`${Math.round(lastReport.analysis.confidence * 100)}%`}
               />
               <p className="rounded-lg bg-white/5 p-3 text-sm text-slate-300">
@@ -106,13 +108,13 @@ export function ReportPage() {
               onClick={reset}
               className="flex-1 rounded-lg border border-accent-400/30 py-2.5 font-medium text-accent-400"
             >
-              بلاغ جديد
+              {t("nav.newReport")}
             </button>
             <button
               onClick={() => navigate("/feed")}
               className="flex-1 rounded-lg bg-accent-500 py-2.5 font-medium text-white"
             >
-              عرض كل البلاغات
+              {t("reportPage.viewAllReports")}
             </button>
           </div>
         </div>
@@ -121,32 +123,30 @@ export function ReportPage() {
   }
 
   return (
-    <AppShell title="بلّغ عن مشكلة">
+    <AppShell title={t("reportPage.title")} breadcrumbs={[t("nav.report")]}>
       <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4">
-        <p className="text-sm text-slate-400">
-          صوّر المشكلة وسيقوم الـ AI بتحديد نوعها وخطورتها والجهة المسؤولة تلقائيًا.
-        </p>
+        <p className="text-sm text-slate-400">{t("reportPage.subtitle")}</p>
 
         <PhotoDropzone value={imageFile} onChange={setImageFile} />
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-300">وصف المشكلة</label>
+          <label className="text-sm font-medium text-slate-300">{t("reportPage.descriptionLabel")}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="مثال: في تسريب مياه جنب المدخل الرئيسي"
+            placeholder={t("reportPage.descriptionPlaceholder")}
             className="surface-panel w-full rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-300">الموقع</label>
+          <label className="text-sm font-medium text-slate-300">{t("reportPage.locationLabel")}</label>
           <div className="flex gap-2">
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="مثال: عمارة 5 - الحديقة الخلفية"
+              placeholder={t("reportPage.locationPlaceholder")}
               className="surface-panel flex-1 rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
             />
             <button
@@ -156,7 +156,7 @@ export function ReportPage() {
               className="flex items-center gap-1 rounded-lg border border-accent-400/30 px-3 text-sm font-medium text-accent-400 disabled:opacity-60"
             >
               {locating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
-              موقعي
+              {t("reportPage.useMyLocation")}
             </button>
           </div>
         </div>
@@ -170,24 +170,17 @@ export function ReportPage() {
         >
           {status === "analyzing" ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> الـ AI بيحلل الصورة...
+              <Loader2 size={18} className="animate-spin" /> {t("reportPage.analyzing")}
             </>
           ) : (
             <>
-              <Send size={18} /> إرسال البلاغ
+              <Send size={18} /> {t("reportPage.submit")}
             </>
           )}
         </button>
       </form>
     </AppShell>
   );
-}
-
-function typeLabel(report: Report) {
-  return PROBLEM_TYPE_LABELS[report.analysis.problemType];
-}
-function severityLabel(report: Report) {
-  return SEVERITY_LABELS[report.analysis.severity];
 }
 
 function Row({ label, value }: { label: string; value: string }) {

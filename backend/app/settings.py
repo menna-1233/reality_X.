@@ -23,5 +23,22 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
+    # Department email notifications. See app/email_service.py.
+    # Defaults target Gmail; override smtp_host/port for another provider
+    # (e.g. Ethereal for testing: smtp.ethereal.email, port 587, secure=false).
+    smtp_enabled: bool = False
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 465
+    smtp_use_ssl: bool = True
+    smtp_email: str = ""
+    smtp_app_password: str = ""
+    # Optional JSON override, e.g. {"pothole": "roads@city.gov"}
+    department_emails: str = ""
+    # Optional: force a single test recipient for ALL departments, so every
+    # notification lands in one inbox you can actually check (e.g. your own
+    # email, or an Ethereal test inbox). Leave unset to use real department
+    # routing.
+    test_recipient_email: str = ""
+
 
 settings = Settings()

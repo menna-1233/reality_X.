@@ -49,6 +49,16 @@ html {
   color-scheme: dark;
 }
 
+/* IBM Plex Sans Arabic is tuned for Arabic script — its Latin companion
+   weights read noticeably heavier/narrower than a font designed Latin-first.
+   For English, use the native system font instead — San Francisco on
+   Mac/iOS, Segoe UI on Windows — rather than shipping a web font. Keyed off
+   the `dir` attribute src/i18n/config.ts keeps in sync with the active
+   language. */
+html[dir="ltr"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+}
+
 body {
   margin: 0;
   background: var(--color-ink-950);

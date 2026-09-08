@@ -1,0 +1,195 @@
+{
+  "common": {
+    "appName": "RealityX",
+    "tagline": "نحوّل مشاكل الواقع إلى حلول ذكاء اصطناعي",
+    "all": "الكل",
+    "allReports": "كل البلاغات",
+    "searchPlaceholder": "بحث في البلاغات...",
+    "department": "الجهة المسؤولة",
+    "confidence": "نسبة الثقة",
+    "location": "الموقع",
+    "noData": "لا توجد بيانات",
+    "severityLabel": "الخطورة",
+    "statusLabel": "الحالة",
+    "baselineLastWeek": "من الأسبوع الماضي",
+    "language": "اللغة"
+  },
+  "nav": {
+    "report": "بلّغ",
+    "reports": "البلاغات",
+    "overview": "نظرة عامة",
+    "manageReports": "إدارة البلاغات",
+    "adminSection": "الإدارة",
+    "newReport": "بلاغ جديد",
+    "help": "المساعدة والتوثيق",
+    "adminSignOut": "تسجيل خروج (الإدارة)",
+    "adminLogin": "دخول الإدارة",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة"
+  },
+  "problemType": {
+    "pothole": "حفرة في الطريق",
+    "garbage": "تراكم زبالة",
+    "water_leak": "تسريب مياه",
+    "broken_light": "عمود نور بايظ",
+    "accident": "حادث",
+    "other": "مشكلة أخرى"
+  },
+  "department": {
+    "pothole": "إدارة الصيانة والطرق",
+    "garbage": "إدارة النظافة",
+    "water_leak": "إدارة الصيانة والمرافق",
+    "broken_light": "إدارة الكهرباء",
+    "accident": "الأمن وإدارة الطوارئ",
+    "other": "الإدارة العامة"
+  },
+  "severity": {
+    "low": "منخفضة",
+    "medium": "متوسطة",
+    "high": "عالية",
+    "critical": "حرجة"
+  },
+  "status": {
+    "open": "مفتوح",
+    "in_progress": "جاري التنفيذ",
+    "resolved": "تم الحل",
+    "closed": "مغلق"
+  },
+  "event": {
+    "created": "تم إنشاء البلاغ",
+    "analyzed": "تم تحليله بالـ AI",
+    "status_changed": "تغييرت الحالة"
+  },
+  "time": {
+    "now": "الآن",
+    "minutesAgo_zero": "أقل من دقيقة",
+    "minutesAgo_one": "منذ دقيقة",
+    "minutesAgo_two": "منذ دقيقتين",
+    "minutesAgo_few": "منذ {{count}} دقائق",
+    "minutesAgo_many": "منذ {{count}} دقيقة",
+    "minutesAgo_other": "منذ {{count}} دقيقة",
+    "hoursAgo_zero": "أقل من ساعة",
+    "hoursAgo_one": "منذ ساعة",
+    "hoursAgo_two": "منذ ساعتين",
+    "hoursAgo_few": "منذ {{count}} ساعات",
+    "hoursAgo_many": "منذ {{count}} ساعة",
+    "hoursAgo_other": "منذ {{count}} ساعة",
+    "daysAgo_zero": "أقل من يوم",
+    "daysAgo_one": "منذ يوم",
+    "daysAgo_two": "منذ يومين",
+    "daysAgo_few": "منذ {{count}} أيام",
+    "daysAgo_many": "منذ {{count}} يومًا",
+    "daysAgo_other": "منذ {{count}} يوم"
+  },
+  "photoDropzone": {
+    "imageAlt": "الصورة المرفقة",
+    "removePhoto": "إزالة الصورة",
+    "addPhotoPrompt": "اضغط لإضافة صورة المشكلة"
+  },
+  "filterPanel": {
+    "filter": "فلترة"
+  },
+  "activityFeed": {
+    "noActivity": "لا يوجد نشاط بعد"
+  },
+  "slideOver": {
+    "close": "إغلاق"
+  },
+  "requireAdmin": {
+    "checking": "...جارٍ التحقق"
+  },
+  "reportCard": {
+    "noLocation": "بدون موقع محدد"
+  },
+  "adminLoginPage": {
+    "email": "الإيميل",
+    "password": "كلمة المرور",
+    "signInError": "تعذّر تسجيل الدخول.",
+    "signingIn": "جارٍ الدخول...",
+    "signIn": "دخول"
+  },
+  "reportPage": {
+    "title": "بلّغ عن مشكلة",
+    "subtitle": "صوّر المشكلة وسيقوم الـ AI بتحديد نوعها وخطورتها والجهة المسؤولة تلقائيًا.",
+    "descriptionLabel": "وصف المشكلة",
+    "descriptionPlaceholder": "مثال: في تسريب مياه جنب المدخل الرئيسي",
+    "locationLabel": "الموقع",
+    "locationPlaceholder": "مثال: عمارة 5 - الحديقة الخلفية",
+    "useMyLocation": "موقعي",
+    "locationUnavailable": "الموقع غير متاح على هذا الجهاز",
+    "locationFailed": "تعذر تحديد الموقع",
+    "imageRequiredError": "من فضلك أضف صورة توضح المشكلة",
+    "submitError": "حدث خطأ أثناء إرسال البلاغ، تأكد من اتصال الباك إند وحاول مرة أخرى",
+    "analyzing": "الـ AI بيحلل الصورة...",
+    "submit": "إرسال البلاغ",
+    "resultTitle": "نتيجة التحليل",
+    "resultBadge": "نتيجة تحليل الـ AI (نتيجة تجريبية للعرض)",
+    "reportImageAlt": "صورة البلاغ",
+    "rowType": "نوع المشكلة",
+    "rowSeverity": "درجة الخطورة",
+    "viewAllReports": "عرض كل البلاغات"
+  },
+  "feedPage": {
+    "subtitle": "كل بلاغ هنا اتحلل بالـ AI ووصل لإدارة الكمباوند تلقائيًا.",
+    "openReportsSuffix": "بلاغ مفتوح",
+    "criticalSuffix": "حرجة",
+    "needsResponseToday": "محتاجة رد اليوم",
+    "emptyNoReports": "لسه مفيش بلاغات، جرّب ترسل بلاغ جديد",
+    "emptyNoMatch": "مفيش بلاغات بالفلتر ده دلوقتي"
+  },
+  "reportDetailPage": {
+    "notFoundTitle": "البلاغ غير موجود",
+    "notFoundBody": "البلاغ غير موجود",
+    "backToAll": "رجوع لكل البلاغات",
+    "aiAnalysis": "تحليل الـ AI",
+    "statusTrail": "مسار الحالة",
+    "closedNotice": "تم إغلاق البلاغ بدون اعتباره محلولاً.",
+    "trailReported": "تم الإبلاغ",
+    "linkedNotice_zero": "الـ AI لسه ما ربطش البلاغ ده بأي بلاغ تاني عن نفس المشكلة",
+    "linkedNotice_one": "الـ AI ربط البلاغ ده ببلاغ واحد تاني عن نفس المشكلة",
+    "linkedNotice_two": "الـ AI ربط البلاغ ده ببلاغين تانيين عن نفس المشكلة",
+    "linkedNotice_few": "الـ AI ربط البلاغ ده بـ {{count}} بلاغات تانية عن نفس المشكلة",
+    "linkedNotice_many": "الـ AI ربط البلاغ ده بـ {{count}} بلاغًا تانيًا عن نفس المشكلة",
+    "linkedNotice_other": "الـ AI ربط البلاغ ده بـ {{count}} بلاغ تاني عن نفس المشكلة"
+  },
+  "dashboardPage": {
+    "exportExcel": "تحميل Excel",
+    "statTotal": "إجمالي البلاغات",
+    "statLinked": "بلاغات مرتبطة",
+    "resolutionRate": "نسبة الحل",
+    "resolutionRateCaption": "من إجمالي البلاغات الحالية",
+    "avgOpenAge": "متوسط عمر البلاغات المفتوحة",
+    "hoursUnit": "{{value}} ساعة",
+    "daysUnit": "{{value}} يوم",
+    "trendCaption": "بلاغات جديدة آخر 7 أيام",
+    "recentActivity": "النشاط الأخير",
+    "unmappedSuffix": "بلاغ بدون إحداثيات دقيقة",
+    "openCriticalAlerts": "بلاغات حرجة مفتوحة",
+    "noCriticalAlerts": "مفيش بلاغات حرجة مفتوحة دلوقتي 👍",
+    "byType": "البلاغات حسب نوع المشكلة"
+  },
+  "findingsPage": {
+    "kanban": "كانبان",
+    "table": "جدول",
+    "noMatch": "مفيش بلاغات مطابقة لهذا الفلتر!",
+    "clearFilters": "مسح الفلاتر",
+    "colId": "المعرف",
+    "colType": "النوع",
+    "colDepartment": "الجهة",
+    "colDate": "التاريخ",
+    "changeStatus": "تغيير الحالة",
+    "tabSummary": "الملخص",
+    "tabEvidence": "الدليل",
+    "tabHistory": "السجل",
+    "noDescription": "لا يوجد وصف",
+    "noLocation": "بدون موقع",
+    "uploadedPrefix": "تم رفعها",
+    "aiAnalysisPrefix": "تحليل الـ AI:",
+    "linkedNotice_zero": "الـ AI لسه ما ربطش البلاغ ده بأي بلاغ تاني",
+    "linkedNotice_one": "الـ AI ربط البلاغ ده ببلاغ واحد تاني",
+    "linkedNotice_two": "الـ AI ربط البلاغ ده ببلاغين تانيين",
+    "linkedNotice_few": "الـ AI ربط البلاغ ده بـ {{count}} بلاغات تانية",
+    "linkedNotice_many": "الـ AI ربط البلاغ ده بـ {{count}} بلاغًا تانيًا",
+    "linkedNotice_other": "الـ AI ربط البلاغ ده بـ {{count}} بلاغ تاني"
+  }
+}

@@ -1,6 +1,8 @@
 import { Eye } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { signInAdmin } from "../lib/adminAuth";
 
 /**
@@ -9,6 +11,7 @@ import { signInAdmin } from "../lib/adminAuth";
  * dashboard/findings pages when no admin session is present.
  */
 export function AdminLoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -26,14 +29,17 @@ export function AdminLoginPage() {
       await signInAdmin(email, password);
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تسجيل الدخول.");
+      setError(err instanceof Error ? err.message : t("adminLoginPage.signInError"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute end-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <form
         onSubmit={handleSubmit}
         className="surface-panel w-full max-w-sm space-y-4 rounded-xl border border-white/8 p-6"
@@ -42,11 +48,11 @@ export function AdminLoginPage() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-500 text-ink-950">
             <Eye size={18} />
           </span>
-          <h1 className="text-lg font-bold text-white">دخول الإدارة</h1>
+          <h1 className="text-lg font-bold text-white">{t("nav.adminLogin")}</h1>
         </div>
 
         <label className="block text-sm text-slate-300">
-          الإيميل
+          {t("adminLoginPage.email")}
           <input
             type="email"
             required
@@ -57,7 +63,7 @@ export function AdminLoginPage() {
         </label>
 
         <label className="block text-sm text-slate-300">
-          كلمة المرور
+          {t("adminLoginPage.password")}
           <input
             type="password"
             required
@@ -78,7 +84,7 @@ export function AdminLoginPage() {
           disabled={loading}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-600 disabled:opacity-70"
         >
-          {loading ? "جارٍ الدخول..." : "دخول"}
+          {loading ? t("adminLoginPage.signingIn") : t("adminLoginPage.signIn")}
         </button>
       </form>
     </div>

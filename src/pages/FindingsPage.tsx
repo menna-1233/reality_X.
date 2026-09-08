@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityFeed } from "../components/ActivityFeed";
 import type { ActivityItem } from "../components/ActivityFeed";
 import { AppShell } from "../components/AppShell";
@@ -25,14 +26,10 @@ import { SeverityBadge } from "../components/SeverityBadge";
 import { SlideOver } from "../components/SlideOver";
 import { StatusBadge } from "../components/StatusBadge";
 import { buildLinkedReportsLookup } from "../lib/incidents";
+import { departmentLabel, eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
 import { listReports, setReportStatus } from "../lib/storage";
+import { formatRelativeTime } from "../lib/time";
 import type { Report, ReportStatus, Severity } from "../types";
-import {
-  EVENT_LABELS,
-  PROBLEM_TYPE_LABELS,
-  SEVERITY_LABELS,
-  STATUS_LABELS,
-} from "../types";
 
 const STATUS_ORDER: ReportStatus[] = ["open", "in_progress", "resolved", "closed"];
 const STATUS_COLOR: Record<ReportStatus, string> = {
@@ -48,22 +45,12 @@ const SEVERITY_COLOR: Record<Severity, string> = {
   critical: "#ef4444",
 };
 
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  const days = Math.floor(hours / 24);
-  return `منذ ${days} يوم`;
-}
-
 interface DragPoint {
   point: { x: number; y: number };
 }
 
 export function FindingsPage() {
+  const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [search, setSearch] = useState("");
@@ -88,10 +75,10 @@ export function FindingsPage() {
       if (filters.status !== "all" && r.status !== filters.status) return false;
       if (!q) return true;
       const hay =
-        `${r.description} ${r.location} ${PROBLEM_TYPE_LABELS[r.analysis.problemType]}`.toLowerCase();
+        `${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [reports, filters, search]);
+  }, [reports, filters, search, t]);
 
   const grouped = useMemo(() => {
     const g: Record<ReportStatus, Report[]> = { open: [], in_progress: [], resolved: [], closed: [] };
@@ -129,22 +116,22 @@ export function FindingsPage() {
   const filterGroups: FilterGroup[] = [
     {
       key: "severity",
-      label: "الخطورة",
+      label: t("common.severityLabel"),
       options: [
-        { value: "all", label: "الكل" },
+        { value: "all", label: t("common.all") },
         ...(["critical", "high", "medium", "low"] as Severity[]).map((s) => ({
           value: s,
-          label: SEVERITY_LABELS[s],
+          label: severityLabel(t, s),
           dot: SEVERITY_COLOR[s],
         })),
       ],
     },
     {
       key: "status",
-      label: "الحالة",
+      label: t("common.statusLabel"),
       options: [
-        { value: "all", label: "الكل" },
-        ...STATUS_ORDER.map((s) => ({ value: s, label: STATUS_LABELS[s], dot: STATUS_COLOR[s] })),
+        { value: "all", label: t("common.all") },
+        ...STATUS_ORDER.map((s) => ({ value: s, label: statusLabel(t, s), dot: STATUS_COLOR[s] })),
       ],
     },
   ];
@@ -152,17 +139,17 @@ export function FindingsPage() {
   const columns: DataTableColumn<Report>[] = [
     {
       key: "id",
-      label: "المعرف",
+      label: t("findingsPage.colId"),
       render: (r) => <span className="font-mono text-xs text-slate-500">#{r.id.slice(0, 6)}</span>,
     },
     {
       key: "type",
-      label: "النوع",
+      label: t("findingsPage.colType"),
       render: (r) => {
         const linked = linkedLookup.get(r.id);
         return (
           <span className="flex items-center gap-1.5 text-sm font-medium text-slate-100">
-            {PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+            {problemTypeLabel(t, r.analysis.problemType)}
             {linked && linked.length > 0 && (
               <span className="flex items-center gap-0.5 rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
                 <Link2 size={9} />+{linked.length}
@@ -172,16 +159,20 @@ export function FindingsPage() {
         );
       },
     },
-    { key: "severity", label: "الخطورة", render: (r) => <SeverityBadge severity={r.analysis.severity} /> },
-    { key: "status", label: "الحالة", render: (r) => <StatusBadge status={r.status} /> },
+    {
+      key: "severity",
+      label: t("common.severityLabel"),
+      render: (r) => <SeverityBadge severity={r.analysis.severity} />,
+    },
+    { key: "status", label: t("common.statusLabel"), render: (r) => <StatusBadge status={r.status} /> },
     {
       key: "dept",
-      label: "الجهة",
-      render: (r) => <span className="text-xs text-slate-400">{r.analysis.department}</span>,
+      label: t("findingsPage.colDepartment"),
+      render: (r) => <span className="text-xs text-slate-400">{departmentLabel(t, r.analysis.problemType)}</span>,
     },
     {
       key: "confidence",
-      label: "نسبة الثقة",
+      label: t("common.confidence"),
       render: (r) => (
         <span className="font-mono text-xs text-slate-400">
           {Math.round(r.analysis.confidence * 100)}%
@@ -190,10 +181,10 @@ export function FindingsPage() {
     },
     {
       key: "date",
-      label: "التاريخ",
+      label: t("findingsPage.colDate"),
       render: (r) => (
         <span className="font-mono text-xs text-slate-500">
-          {new Date(r.createdAt).toLocaleDateString("ar-EG-u-nu-latn")}
+          {new Date(r.createdAt).toLocaleDateString(i18n.language === "en" ? "en-US" : "ar-EG-u-nu-latn")}
         </span>
       ),
     },
@@ -204,14 +195,14 @@ export function FindingsPage() {
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .map((e) => ({
       icon: e.kind === "status_changed" ? RefreshCw : e.kind === "analyzed" ? CheckCircle2 : Inbox,
-      title: EVENT_LABELS[e.kind],
-      time: relativeTime(e.at),
+      title: eventLabel(t, e.kind),
+      time: formatRelativeTime(e.at, t),
     }));
 
   return (
     <AppShell
-      title="إدارة البلاغات"
-      breadcrumbs={["الإدارة", "البلاغات"]}
+      title={t("nav.manageReports")}
+      breadcrumbs={[t("nav.adminSection"), t("nav.reports")]}
       actions={
         <div className="flex items-center gap-2">
           <div className="surface-panel flex items-center rounded-lg border border-white/8 p-0.5">
@@ -221,7 +212,7 @@ export function FindingsPage() {
                 view === "kanban" ? "bg-accent-500 text-white" : "text-slate-400 hover:text-white"
               }`}
             >
-              <LayoutGrid size={14} /> كانبان
+              <LayoutGrid size={14} /> {t("findingsPage.kanban")}
             </button>
             <button
               onClick={() => setView("table")}
@@ -229,7 +220,7 @@ export function FindingsPage() {
                 view === "table" ? "bg-accent-500 text-white" : "text-slate-400 hover:text-white"
               }`}
             >
-              <Table2 size={14} /> جدول
+              <Table2 size={14} /> {t("findingsPage.table")}
             </button>
           </div>
           <FilterPanel groups={filterGroups} active={filters} onChange={(k, v) => setFilters((f) => ({ ...f, [k]: v }))} />
@@ -242,7 +233,7 @@ export function FindingsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث في البلاغات..."
+            placeholder={t("common.searchPlaceholder")}
             className="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
           />
         </div>
@@ -250,7 +241,7 @@ export function FindingsPage() {
         {filtered.length === 0 ? (
           <EmptyState
             icon={Search}
-            title="مفيش بلاغات مطابقة لهذا الفلتر!"
+            title={t("findingsPage.noMatch")}
             action={
               <button
                 onClick={() => {
@@ -259,7 +250,7 @@ export function FindingsPage() {
                 }}
                 className="rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-600"
               >
-                مسح الفلاتر
+                {t("findingsPage.clearFilters")}
               </button>
             }
           />
@@ -281,7 +272,7 @@ export function FindingsPage() {
                       className="h-2 w-2 rounded-full"
                       style={{ background: STATUS_COLOR[status] }}
                     />
-                    <p className="text-xs font-semibold text-slate-300">{STATUS_LABELS[status]}</p>
+                    <p className="text-xs font-semibold text-slate-300">{statusLabel(t, status)}</p>
                     <span className="ms-auto rounded-full bg-white/8 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
                       {grouped[status].length}
                     </span>
@@ -318,7 +309,7 @@ export function FindingsPage() {
                           <span className="font-mono text-[10px] text-slate-600">#{r.id.slice(0, 5)}</span>
                         </div>
                         <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-100">
-                          <span className="line-clamp-2">{PROBLEM_TYPE_LABELS[r.analysis.problemType]}</span>
+                          <span className="line-clamp-2">{problemTypeLabel(t, r.analysis.problemType)}</span>
                           {linkedLookup.has(r.id) && (
                             <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
                               <Link2 size={9} />+{linkedLookup.get(r.id)!.length}
@@ -327,7 +318,7 @@ export function FindingsPage() {
                         </p>
                         <p className="mt-1 truncate text-[10px] text-slate-500">{r.location}</p>
                         <div className="mt-2 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-600">{relativeTime(r.createdAt)}</span>
+                          <span className="text-[10px] text-slate-600">{formatRelativeTime(r.createdAt, t)}</span>
                           <select
                             value={r.status}
                             onChange={(e) => {
@@ -336,12 +327,12 @@ export function FindingsPage() {
                             }}
                             onClick={(e) => e.stopPropagation()}
                             onPointerDown={(e) => e.stopPropagation()}
-                            aria-label="تغيير الحالة"
+                            aria-label={t("findingsPage.changeStatus")}
                             className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-300"
                           >
                             {STATUS_ORDER.map((s) => (
                               <option key={s} value={s} className="bg-ink-800">
-                                {STATUS_LABELS[s]}
+                                {statusLabel(t, s)}
                               </option>
                             ))}
                           </select>
@@ -359,27 +350,27 @@ export function FindingsPage() {
       <SlideOver
         open={selected !== null}
         onClose={() => setSelected(null)}
-        title={selected ? PROBLEM_TYPE_LABELS[selected.analysis.problemType] : ""}
+        title={selected ? problemTypeLabel(t, selected.analysis.problemType) : ""}
       >
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center gap-1.5 border-b border-white/8 pb-3">
               {(
                 [
-                  { key: "summary", label: "الملخص", icon: FileText },
-                  { key: "evidence", label: "الدليل", icon: ImageIcon },
-                  { key: "history", label: "السجل", icon: History },
+                  { key: "summary", labelKey: "findingsPage.tabSummary", icon: FileText },
+                  { key: "evidence", labelKey: "findingsPage.tabEvidence", icon: ImageIcon },
+                  { key: "history", labelKey: "findingsPage.tabHistory", icon: History },
                 ] as const
-              ).map((t) => (
+              ).map((tabDef) => (
                 <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
+                  key={tabDef.key}
+                  onClick={() => setTab(tabDef.key)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                    tab === t.key ? "bg-accent-500 text-white" : "text-slate-400 hover:bg-white/5"
+                    tab === tabDef.key ? "bg-accent-500 text-white" : "text-slate-400 hover:bg-white/5"
                   }`}
                 >
-                  <t.icon size={13} />
-                  {t.label}
+                  <tabDef.icon size={13} />
+                  {t(tabDef.labelKey)}
                 </button>
               ))}
             </div>
@@ -392,15 +383,15 @@ export function FindingsPage() {
                   <StatusBadge status={selected.status} />
                 </div>
                 <p className="rounded-lg bg-white/5 p-3 text-sm text-slate-200">
-                  {selected.description || "لا يوجد وصف"}
+                  {selected.description || t("findingsPage.noDescription")}
                 </p>
                 <div className="space-y-2 text-sm">
-                  <Row label="الموقع" value={selected.location || "بدون موقع"} />
-                  <Row label="الجهة المسؤولة" value={selected.analysis.department} />
-                  <Row label="نسبة الثقة" value={`${Math.round(selected.analysis.confidence * 100)}%`} />
+                  <Row label={t("common.location")} value={selected.location || t("findingsPage.noLocation")} />
+                  <Row label={t("common.department")} value={departmentLabel(t, selected.analysis.problemType)} />
+                  <Row label={t("common.confidence")} value={`${Math.round(selected.analysis.confidence * 100)}%`} />
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold text-slate-400">تغيير الحالة</p>
+                  <p className="text-[11px] font-semibold text-slate-400">{t("findingsPage.changeStatus")}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {STATUS_ORDER.map((s) => (
                       <Chip
@@ -409,7 +400,7 @@ export function FindingsPage() {
                         onClick={() => handleStatusChange(selected.id, s)}
                         dot={STATUS_COLOR[s]}
                       >
-                        {STATUS_LABELS[s]}
+                        {statusLabel(t, s)}
                       </Chip>
                     ))}
                   </div>
@@ -419,7 +410,7 @@ export function FindingsPage() {
                   <div className="space-y-2 border-t border-white/8 pt-3">
                     <p className="flex items-center gap-1.5 text-[11px] font-semibold text-accent-400">
                       <Link2 size={12} />
-                      الـ AI ربط البلاغ ده بـ {linkedLookup.get(selected.id)!.length} بلاغ تاني
+                      {t("findingsPage.linkedNotice", { count: linkedLookup.get(selected.id)!.length })}
                     </p>
                     {linkedLookup.get(selected.id)!.map((r) => (
                       <button
@@ -430,9 +421,9 @@ export function FindingsPage() {
                         <img src={r.imageDataUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-medium text-slate-200">
-                            {r.description || PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                            {r.description || problemTypeLabel(t, r.analysis.problemType)}
                           </p>
-                          <p className="truncate text-[10px] text-slate-500">{relativeTime(r.createdAt)}</p>
+                          <p className="truncate text-[10px] text-slate-500">{formatRelativeTime(r.createdAt, t)}</p>
                         </div>
                         <StatusBadge status={r.status} />
                       </button>
@@ -446,11 +437,12 @@ export function FindingsPage() {
               <div className="space-y-3">
                 <img
                   src={selected.imageDataUrl}
-                  alt={PROBLEM_TYPE_LABELS[selected.analysis.problemType]}
+                  alt={problemTypeLabel(t, selected.analysis.problemType)}
                   className="w-full rounded-xl border border-white/10 object-cover"
                 />
                 <p className="text-xs text-slate-500">
-                  تم رفعها {relativeTime(selected.createdAt)} — تحليل الـ AI: {selected.analysis.summary}
+                  {t("findingsPage.uploadedPrefix")} {formatRelativeTime(selected.createdAt, t)} —{" "}
+                  {t("findingsPage.aiAnalysisPrefix")} {selected.analysis.summary}
                 </p>
               </div>
             )}

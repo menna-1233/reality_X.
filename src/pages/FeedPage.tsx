@@ -1,14 +1,15 @@
 import { Inbox } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppShell } from "../components/AppShell";
 import { Chip } from "../components/Chip";
 import { EmptyState } from "../components/EmptyState";
 import { ReportCard } from "../components/ReportCard";
 import { buildLinkedReportsLookup } from "../lib/incidents";
+import { severityLabel } from "../lib/labels";
 import { listReports } from "../lib/storage";
 import type { Report, Severity } from "../types";
-import { SEVERITY_LABELS } from "../types";
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   low: "#22c55e",
@@ -20,6 +21,7 @@ const SEVERITY_COLOR: Record<Severity, string> = {
 const FILTERS: (Severity | "all")[] = ["all", "critical", "high", "medium", "low"];
 
 export function FeedPage() {
+  const { t } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<Severity | "all">("all");
 
@@ -48,22 +50,21 @@ export function FeedPage() {
   const linkedLookup = useMemo(() => buildLinkedReportsLookup(reports), [reports]);
 
   return (
-    <AppShell title="كل البلاغات" breadcrumbs={["البلاغات"]}>
+    <AppShell title={t("common.allReports")} breadcrumbs={[t("nav.reports")]}>
       <div className="mx-auto max-w-lg space-y-4">
-        <p className="text-sm text-slate-400">
-          كل بلاغ هنا اتحلل بالـ AI ووصل لإدارة الكمباوند تلقائيًا.
-        </p>
+        <p className="text-sm text-slate-400">{t("feedPage.subtitle")}</p>
 
         {reports.length > 0 && (
           <div className="surface-panel flex items-center justify-between rounded-xl border border-white/8 px-4 py-2.5 text-xs">
             <span className="text-slate-300">
-              <b className="font-mono text-sm text-white">{openCount}</b> بلاغ مفتوح
+              <b className="font-mono text-sm text-white">{openCount}</b> {t("feedPage.openReportsSuffix")}
             </span>
             {criticalCount > 0 && (
               <span className="flex items-center gap-1.5 text-slate-300">
-                <b className="font-mono text-sm text-severity-critical">{criticalCount}</b> حرجة
+                <b className="font-mono text-sm text-severity-critical">{criticalCount}</b>{" "}
+                {t("feedPage.criticalSuffix")}
                 <span className="h-1.5 w-1.5 rounded-full bg-severity-critical" />
-                محتاجة رد اليوم
+                {t("feedPage.needsResponseToday")}
               </span>
             )}
           </div>
@@ -79,16 +80,16 @@ export function FeedPage() {
                 dot={f === "all" ? undefined : SEVERITY_COLOR[f]}
                 count={counts[f] ?? 0}
               >
-                {f === "all" ? "الكل" : SEVERITY_LABELS[f]}
+                {f === "all" ? t("common.all") : severityLabel(t, f)}
               </Chip>
             ))}
           </div>
         )}
 
         {reports.length === 0 ? (
-          <EmptyState icon={Inbox} title="لسه مفيش بلاغات، جرّب ترسل بلاغ جديد" />
+          <EmptyState icon={Inbox} title={t("feedPage.emptyNoReports")} />
         ) : visible.length === 0 ? (
-          <EmptyState icon={Inbox} title="مفيش بلاغات بالفلتر ده دلوقتي" />
+          <EmptyState icon={Inbox} title={t("feedPage.emptyNoMatch")} />
         ) : (
           <div className="space-y-3">
             {visible.map((report, i) => (

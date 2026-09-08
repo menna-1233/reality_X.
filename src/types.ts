@@ -56,31 +56,6 @@ export interface Incident {
   reports: Report[];
 }
 
-export const PROBLEM_TYPE_LABELS: Record<ProblemType, string> = {
-  pothole: "حفرة في الطريق",
-  garbage: "تراكم زبالة",
-  water_leak: "تسريب مياه",
-  broken_light: "عمود نور بايظ",
-  accident: "حادث",
-  other: "مشكلة أخرى",
-};
-
-export const SEVERITY_LABELS: Record<Severity, string> = {
-  low: "منخفضة",
-  medium: "متوسطة",
-  high: "عالية",
-  critical: "حرجة",
-};
-
-export const STATUS_LABELS: Record<ReportStatus, string> = {
-  open: "مفتوح",
-  in_progress: "جاري التنفيذ",
-  resolved: "تم الحل",
-  closed: "مغلق",
-};
-
-export const EVENT_LABELS: Record<ReportEventKind, string> = {
-  created: "تم إنشاء البلاغ",
-  analyzed: "تم تحليله بالـ AI",
-  status_changed: "تغييرت الحالة",
-};
+// Display labels for these enums live in the i18n locale files
+// (src/i18n/locales/*.json, under problemType/severity/status/event) and are
+// resolved via src/lib/labels.ts — not here, so they can be translated.

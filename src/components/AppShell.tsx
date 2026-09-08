@@ -5,28 +5,42 @@ import {
   LogIn,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Send,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useGlassPointer } from "../hooks/useGlassPointer";
 import { signOutAdmin } from "../lib/adminAuth";
 import { useAdminSession } from "../lib/useAdminSession";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 // Public — every visitor (citizen or admin) sees these, no login needed.
 const PUBLIC_NAV = [
-  { to: "/", end: true, icon: Send, label: "بلّغ" },
-  { to: "/feed", end: false, icon: Inbox, label: "البلاغات" },
-];
+  { to: "/", end: true, icon: Send, labelKey: "nav.report" },
+  { to: "/feed", end: false, icon: Inbox, labelKey: "nav.reports" },
+] as const;
 
 // Admin-only — shown in the nav only once an admin session is confirmed.
 // The routes themselves are still gated by RequireAdmin regardless.
 const ADMIN_NAV = [
-  { to: "/dashboard", end: false, icon: LayoutDashboard, label: "نظرة عامة" },
-  { to: "/findings", end: false, icon: ClipboardList, label: "إدارة البلاغات" },
-];
+  { to: "/dashboard", end: false, icon: LayoutDashboard, labelKey: "nav.overview" },
+  { to: "/findings", end: false, icon: ClipboardList, labelKey: "nav.manageReports" },
+] as const;
+
+const SIDEBAR_COLLAPSED_KEY = "urbaneye.sidebarCollapsed";
+
+function readStoredSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 // capsule, not rounded-lg: Apple's Liquid Glass controls default to a
 // capsule shape ("`.glassEffect()` applies the `.regular` variant in a
@@ -41,6 +55,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const adminStatus = useAdminSession();
   const isAdmin = adminStatus === "in";
@@ -58,10 +73,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <X size={20} strokeWidth={3} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-white">RealityX</p>
-          <p className="truncate text-[11px] text-slate-500">
-            نحوّل مشاكل الواقع إلى حلول ذكاء اصطناعي
-          </p>
+          <p className="truncate text-sm font-bold text-white">{t("common.appName")}</p>
+          <p className="truncate text-[11px] text-slate-500">{t("common.tagline")}</p>
         </div>
       </div>
 
@@ -71,7 +84,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         className="flex items-center justify-center gap-2 rounded-lg bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600"
       >
-        <Send size={15} /> بلاغ جديد
+        <Send size={15} /> {t("nav.newReport")}
       </NavLink>
 
       <nav className="flex flex-1 flex-col gap-0.5">
@@ -84,14 +97,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className={navLinkClass}
           >
             <item.icon size={16} />
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
 
         {isAdmin && (
           <>
             <p className="mt-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-              الإدارة
+              {t("nav.adminSection")}
             </p>
             {ADMIN_NAV.map((item) => (
               <NavLink
@@ -102,7 +115,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 className={navLinkClass}
               >
                 <item.icon size={16} />
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             ))}
           </>
@@ -117,7 +130,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
           >
             <LogOut size={16} />
-            تسجيل خروج (الإدارة)
+            {t("nav.adminSignOut")}
           </button>
         ) : (
           <NavLink
@@ -126,7 +139,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
           >
             <LogIn size={16} />
-            دخول الإدارة
+            {t("nav.adminLogin")}
           </NavLink>
         )}
       </div>
@@ -145,18 +158,34 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredSidebarCollapsed);
   const sidebarRef = useGlassPointer<HTMLElement>();
   const headerRef = useGlassPointer<HTMLElement>();
 
+  function toggleSidebar() {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // ignore write failures — the toggle still works for this session
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="flex min-h-screen">
-      <aside
-        ref={sidebarRef}
-        className="glass-surface sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex"
-      >
-        <SidebarContent />
-      </aside>
+      {!sidebarCollapsed && (
+        <aside
+          ref={sidebarRef}
+          className="glass-surface sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex"
+        >
+          <SidebarContent />
+        </aside>
+      )}
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
@@ -169,7 +198,7 @@ export function AppShell({
             <button
               onClick={() => setDrawerOpen(false)}
               className="self-end rounded-lg p-1.5 text-slate-400 hover:bg-white/5"
-              aria-label="إغلاق القائمة"
+              aria-label={t("nav.closeMenu")}
             >
               <X size={18} />
             </button>
@@ -187,9 +216,16 @@ export function AppShell({
             <button
               onClick={() => setDrawerOpen(true)}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:hidden"
-              aria-label="فتح القائمة"
+              aria-label={t("nav.openMenu")}
             >
               <Menu size={20} />
+            </button>
+            <button
+              onClick={toggleSidebar}
+              className="hidden rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:flex"
+              aria-label={sidebarCollapsed ? t("nav.openMenu") : t("nav.closeMenu")}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
             </button>
             <div>
               {breadcrumbs && breadcrumbs.length > 0 && (
@@ -200,7 +236,10 @@ export function AppShell({
               <h1 className="text-lg font-bold text-white md:text-xl">{title}</h1>
             </div>
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          <div className="flex items-center gap-2">
+            {actions}
+            <LanguageSwitcher />
+          </div>
           <div className="scroll-edge-fade" aria-hidden="true" />
         </header>
 
