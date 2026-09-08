@@ -51,7 +51,7 @@ export function FeedPage() {
 
   return (
     <AppShell title={t("common.allReports")} breadcrumbs={[t("nav.reports")]}>
-      <div className="mx-auto max-w-lg space-y-4">
+      <div className="mx-auto max-w-5xl space-y-4">
         <p className="text-sm text-slate-400">{t("feedPage.subtitle")}</p>
 
         {reports.length > 0 && (
@@ -91,7 +91,7 @@ export function FeedPage() {
         ) : visible.length === 0 ? (
           <EmptyState icon={Inbox} title={t("feedPage.emptyNoMatch")} />
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {visible.map((report, i) => (
               <motion.div
                 key={report.id}

@@ -72,7 +72,7 @@
   "photoDropzone": {
     "imageAlt": "Attached photo",
     "removePhoto": "Remove photo",
-    "addPhotoPrompt": "Tap to add a photo of the problem"
+    "addPhotoPrompt": "Drag & drop a photo here, or click to browse"
   },
   "filterPanel": {
     "filter": "Filter"
