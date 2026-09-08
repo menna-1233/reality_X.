@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
+import { reverseGeocode } from "../lib/geo";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
 import { PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
@@ -26,10 +27,13 @@ export function ReportPage() {
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation(
-          `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`,
-        );
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Show coordinates immediately, then swap in the readable address
+        // once reverse-geocoding resolves (or keep the coordinates on failure).
+        setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) setLocation(address);
         setLocating(false);
       },
       () => {

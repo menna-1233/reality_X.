@@ -2,6 +2,7 @@ import { Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Report, Severity } from "../types";
 import { PROBLEM_TYPE_LABELS } from "../types";
+import { LocationLabel } from "./LocationLabel";
 import { SeverityBadge } from "./SeverityBadge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -53,7 +54,7 @@ export function ReportCard({ report, linkedCount = 0 }: { report: Report; linked
         </div>
         <p className="line-clamp-1 flex items-center gap-1 text-sm text-slate-400">
           <span className="text-slate-500">📍</span>
-          {report.location || "بدون موقع محدد"}
+          {report.location ? <LocationLabel location={report.location} /> : "بدون موقع محدد"}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <SeverityBadge severity={report.analysis.severity} />
