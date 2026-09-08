@@ -119,6 +119,8 @@
     "locationUnavailable": "الموقع غير متاح على هذا الجهاز",
     "locationFailed": "تعذر تحديد الموقع",
     "imageRequiredError": "من فضلك أضف صورة توضح المشكلة",
+    "descriptionRequiredError": "من فضلك اكتب وصف المشكلة",
+    "locationRequiredError": "من فضلك أضف الموقع",
     "submitError": "حدث خطأ أثناء إرسال البلاغ، تأكد من اتصال الباك إند وحاول مرة أخرى",
     "analyzing": "الـ AI بيحلل الصورة...",
     "submit": "إرسال البلاغ",

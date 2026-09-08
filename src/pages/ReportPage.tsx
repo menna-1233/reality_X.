@@ -54,6 +54,14 @@ export function ReportPage() {
       setError(t("reportPage.imageRequiredError"));
       return;
     }
+    if (!description.trim()) {
+      setError(t("reportPage.descriptionRequiredError"));
+      return;
+    }
+    if (!location.trim()) {
+      setError(t("reportPage.locationRequiredError"));
+      return;
+    }
     setStatus("analyzing");
     try {
       // The backend does the AI analysis + incident grouping and returns the
@@ -130,22 +138,28 @@ export function ReportPage() {
         <PhotoDropzone value={imageFile} onChange={setImageFile} />
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-300">{t("reportPage.descriptionLabel")}</label>
+          <label className="text-sm font-medium text-slate-300">
+            {t("reportPage.descriptionLabel")} <span className="text-severity-critical">*</span>
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
+            required
             placeholder={t("reportPage.descriptionPlaceholder")}
             className="surface-panel w-full rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-300">{t("reportPage.locationLabel")}</label>
+          <label className="text-sm font-medium text-slate-300">
+            {t("reportPage.locationLabel")} <span className="text-severity-critical">*</span>
+          </label>
           <div className="flex gap-2">
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              required
               placeholder={t("reportPage.locationPlaceholder")}
               className="surface-panel flex-1 rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
             />

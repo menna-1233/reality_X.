@@ -1,4 +1,4 @@
-// RealityX API — Supabase Edge Function
+// UrbanEye AI API — Supabase Edge Function
 //
 // Port of backend/app/* (FastAPI) to a single Deno edge function, since no
 // external host was running the FastAPI service. Mirrors the same routes,
@@ -6,6 +6,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import * as XLSX from "npm:xlsx@0.18.5";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -284,6 +285,131 @@ async function maybeNotify(opts: {
   });
 }
 
+// ---------------- department email (port of app/email_service.py) ----------------
+//
+// Emails the department responsible for a report's problem_type the moment
+// the report is created, via Gmail SMTP. Never throws — a broken/unconfigured
+// mailer must never break report creation. Configure via Supabase Edge
+// Function secrets (`supabase secrets set ...`), not via backend/.env or
+// Replit Secrets — this function has its own separate secret store. See
+// supabase/functions/urbaneye-api/README.md.
+
+const SMTP_ENABLED = (Deno.env.get("SMTP_ENABLED") ?? "false") === "true";
+const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "smtp.gmail.com";
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") ?? "465");
+const SMTP_USE_SSL = (Deno.env.get("SMTP_USE_SSL") ?? "true") === "true";
+const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL") ?? "";
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
+const TEST_RECIPIENT_EMAIL = Deno.env.get("TEST_RECIPIENT_EMAIL") ?? "";
+
+const DEFAULT_DEPARTMENT_EMAILS: Record<ProblemType, string> = {
+  pothole: "maintenance-test@example.com",
+  garbage: "cleaning-test@example.com",
+  water_leak: "maintenance-test@example.com",
+  broken_light: "electricity-test@example.com",
+  accident: "security-test@example.com",
+  other: "general-test@example.com",
+};
+
+function departmentEmails(): Record<string, string> {
+  const raw = Deno.env.get("DEPARTMENT_EMAILS");
+  if (!raw) return DEFAULT_DEPARTMENT_EMAILS;
+  try {
+    return { ...DEFAULT_DEPARTMENT_EMAILS, ...JSON.parse(raw) };
+  } catch {
+    console.warn("DEPARTMENT_EMAILS is not valid JSON, using defaults");
+    return DEFAULT_DEPARTMENT_EMAILS;
+  }
+}
+
+// A configured test recipient overrides real department routing, so every
+// notification lands in one inbox you can actually check.
+function recipientFor(problemType: string): string {
+  if (TEST_RECIPIENT_EMAIL) return TEST_RECIPIENT_EMAIL;
+  return departmentEmails()[problemType] ?? DEFAULT_DEPARTMENT_EMAILS.other;
+}
+
+const EMAIL_SEVERITY_AR: Record<string, string> = {
+  low: "منخفضة",
+  medium: "متوسطة",
+  high: "عالية",
+  critical: "حرجة",
+};
+
+// deno-lint-ignore no-explicit-any
+function buildEmailBody(report: any): string {
+  const severityAr = EMAIL_SEVERITY_AR[report.severity ?? ""] ?? report.severity ?? "";
+  return `بلاغ جديد يحتاج مراجعة من إدارتكم
+
+الإدارة المسؤولة: ${report.department ?? "غير محدد"}
+درجة الخطورة: ${severityAr}
+الوصف المرسل من المواطن: ${report.description ?? "بدون وصف"}
+الموقع: ${report.location_text ?? "غير محدد"}
+ملخص الذكاء الاصطناعي: ${report.ai_summary ?? ""}
+
+رابط صورة البلاغ: ${report.image_url ?? ""}
+رقم البلاغ: ${report.id ?? ""}
+
+---
+تم الإرسال تلقائياً بواسطة نظام UrbanEye AI
+`;
+}
+
+// deno-lint-ignore no-explicit-any
+async function sendDepartmentNotification(report: any): Promise<void> {
+  if (!SMTP_ENABLED) {
+    console.log("SMTP_ENABLED=false, skipping department email");
+    return;
+  }
+
+  const toEmail = recipientFor(report.problem_type ?? "other");
+
+  if (!SMTP_EMAIL || !SMTP_APP_PASSWORD) {
+    console.log(
+      `[DRY RUN - no SMTP credentials] Would email ${toEmail}:\n${buildEmailBody(report)}`,
+    );
+    return;
+  }
+
+  const severityAr = EMAIL_SEVERITY_AR[report.severity ?? ""] ?? "";
+
+  // Everything below — including the client's own close() — is one
+  // failure domain: denomailer throws its own secondary error out of
+  // close() when send() never got as far as opening a connection (e.g. a
+  // rejected recipient), so close() must never be allowed to escape and
+  // clobber the original, more useful error.
+  try {
+    const smtp = new SMTPClient({
+      connection: {
+        hostname: SMTP_HOST,
+        port: SMTP_PORT,
+        tls: SMTP_USE_SSL,
+        auth: { username: SMTP_EMAIL, password: SMTP_APP_PASSWORD },
+      },
+    });
+    try {
+      await smtp.send({
+        from: `UrbanEye AI <${SMTP_EMAIL}>`,
+        to: toEmail,
+        subject: `بلاغ جديد - ${report.department ?? "إدارة عامة"} (خطورة: ${severityAr})`,
+        content: buildEmailBody(report),
+      });
+      console.log(`Department email sent to ${toEmail} for report ${report.id}`);
+    } finally {
+      // denomailer's close() isn't reliably a Promise (sometimes throws
+      // synchronously, sometimes returns undefined) — a plain try/catch
+      // around the await handles both, unlike chaining .catch() onto it.
+      try {
+        await smtp.close();
+      } catch {
+        // cleanup failure here never matters to the caller
+      }
+    }
+  } catch (err) {
+    console.error("Failed to send department notification email:", err);
+  }
+}
+
 // ---------------- Excel export (port of backend/app/excel_export.py) ----------------
 
 const EXCEL_HEADERS = [
@@ -405,12 +531,18 @@ Deno.serve(async (req) => {
         const form = await req.formData();
         const image = form.get("image") as File | null;
         if (!image) return json({ detail: "image is required" }, 422);
-        const description = String(form.get("description") ?? "");
-        const locationText = String(form.get("location_text") ?? "");
+        const description = String(form.get("description") ?? "").trim();
+        if (!description) return json({ detail: "description is required" }, 422);
+        const locationText = String(form.get("location_text") ?? "").trim();
         const latRaw = form.get("latitude");
         const lngRaw = form.get("longitude");
         const latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
         const longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
+        // Location is either coordinates (from "use my location") or typed
+        // text — the citizen must supply one or the other, not neither.
+        if (latitude == null && longitude == null && !locationText) {
+          return json({ detail: "location is required" }, 422);
+        }
         const communityId = String(form.get("community_id") ?? "") || DEFAULT_COMMUNITY_ID;
         const language = parseLanguage(form.get("language"));
 
@@ -454,6 +586,17 @@ Deno.serve(async (req) => {
           .select()
           .single();
         if (insertError) throw insertError;
+
+        // Email the department responsible for this problem type. Never
+        // blocks/fails the request if SMTP is unset or unreachable —
+        // sendDepartmentNotification already catches internally, but the
+        // report the citizen submitted must be saved either way, so this
+        // is caught again at the call site as a second line of defense.
+        try {
+          await sendDepartmentNotification(inserted);
+        } catch (err) {
+          console.error("Department email step failed unexpectedly:", err);
+        }
 
         const { data: incident } = await client
           .from("incidents")
