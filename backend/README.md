@@ -1,4 +1,4 @@
-# UrbanEye AI — Backend
+# RealityX — Backend
 
 FastAPI backend that ties the frontend, the Supabase database, and the AI
 classifier together. It exposes the API the citizen-facing app and the admin

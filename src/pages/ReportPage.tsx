@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
+import { reverseGeocode } from "../lib/geo";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
 import { PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
@@ -26,16 +27,21 @@ export function ReportPage() {
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation(
-          `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`,
-        );
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        // Show coordinates immediately, then swap in the readable address
+        // once reverse-geocoding resolves (or keep the coordinates on failure).
+        setLocation(coords);
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) setLocation(address);
         setLocating(false);
       },
       () => {
         setLocation("تعذر تحديد الموقع");
         setLocating(false);
       },
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
@@ -69,7 +75,7 @@ export function ReportPage() {
 
   if (status === "done" && lastReport) {
     return (
-      <AppShell title="نتيجة التحليل" breadcrumbs={["بلّغ"]}>
+      <AppShell title="نتيجة التحليل">
         <div className="mx-auto max-w-lg space-y-4">
           <div className="surface-panel rounded-xl border border-accent-400/20 p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-accent-400">
@@ -115,7 +121,7 @@ export function ReportPage() {
   }
 
   return (
-    <AppShell title="بلّغ عن مشكلة" breadcrumbs={["بلّغ"]}>
+    <AppShell title="بلّغ عن مشكلة">
       <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4">
         <p className="text-sm text-slate-400">
           صوّر المشكلة وسيقوم الـ AI بتحديد نوعها وخطورتها والجهة المسؤولة تلقائيًا.

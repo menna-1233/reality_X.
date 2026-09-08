@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans Arabic", "Tahoma", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Arabic", "SF Pro Text", "Cairo",
+    "IBM Plex Sans Arabic", "Tahoma", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* CY·FOCUS-inspired accent — reserved for actions/active state, never severity */

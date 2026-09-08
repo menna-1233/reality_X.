@@ -1,4 +1,4 @@
-// UrbanEye AI API — Supabase Edge Function
+// RealityX API — Supabase Edge Function
 //
 // Port of backend/app/* (FastAPI) to a single Deno edge function, since no
 // external host was running the FastAPI service. Mirrors the same routes,
