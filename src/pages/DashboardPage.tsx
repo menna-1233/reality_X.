@@ -21,7 +21,6 @@ import { Gauge } from "../components/Gauge";
 import { Sparkline } from "../components/Sparkline";
 import { StatTile } from "../components/StatTile";
 import { apiExportReportsExcel } from "../lib/api";
-import { parseLatLng } from "../lib/geo";
 import { groupIntoIncidents } from "../lib/incidents";
 import { departmentLabel, eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
 import { listRecentEvents, listReports } from "../lib/storage";
@@ -36,6 +35,11 @@ const SEVERITY_COLOR: Record<Severity, string> = {
 };
 
 const DEFAULT_CENTER: [number, number] = [30.0596, 31.2295]; // fallback: Cairo-area compound
+
+/** Real numeric coordinates, when the report has them — not a parse of the display string. */
+function reportCoords(r: Report): [number, number] | null {
+  return r.latitude != null && r.longitude != null ? [r.latitude, r.longitude] : null;
+}
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -129,7 +133,7 @@ export function DashboardPage() {
   );
 
   const unmappedCount = useMemo(
-    () => filtered.filter((r) => !parseLatLng(r.location)).length,
+    () => filtered.filter((r) => !reportCoords(r)).length,
     [filtered],
   );
 
@@ -186,7 +190,7 @@ export function DashboardPage() {
 
     const coords: [number, number][] = [];
     for (const r of filtered) {
-      const latLng = parseLatLng(r.location);
+      const latLng = reportCoords(r);
       if (!latLng) continue;
       coords.push(latLng);
 
