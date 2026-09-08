@@ -120,7 +120,10 @@ def send_department_notification(report: dict) -> bool:
 
     try:
         msg = MIMEMultipart()
-        msg["From"] = settings.smtp_email
+        # Display name shown to the recipient. The technical sending address
+        # still has to be a real, authenticated mailbox (Gmail/SES/etc.) --
+        # this just makes it *read* as coming from the app, not a person.
+        msg["From"] = f"UrbanEye AI <{settings.smtp_email}>"
         msg["To"] = to_email
         msg["Subject"] = (
             f"بلاغ جديد - {report.get('department') or 'إدارة عامة'} "
