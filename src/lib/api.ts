@@ -3,7 +3,7 @@ import { getAdminAccessToken } from "./adminAuth";
 import type { Analysis, Report, ReportEvent, ReportStatus } from "../types";
 
 /**
- * Talks to the real UrbanEye backend (see /backend). This replaces the old
+ * Talks to the real RealityX backend (see /backend). This replaces the old
  * localStorage-backed `storage.ts` + client-side `mockAnalyze.ts` — the AI
  * classification and incident grouping now happen server-side.
  */
@@ -43,7 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, init);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`UrbanEye API ${res.status} on ${path}: ${body}`);
+    throw new Error(`RealityX API ${res.status} on ${path}: ${body}`);
   }
   return res.json() as Promise<T>;
 }

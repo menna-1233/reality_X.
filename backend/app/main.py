@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routers import analyze, incidents, reports, stats
 
 app = FastAPI(
-    title="UrbanEye AI API",
-    description="Backend for the UrbanEye AI Smart City hackathon MVP.",
+    title="RealityX API",
+    description="Backend for RealityX — Turning Real-World Problems into AI-Powered Solutions.",
     version="0.1.0",
 )
 
