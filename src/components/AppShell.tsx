@@ -5,6 +5,8 @@ import {
   LogIn,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Send,
   X,
 } from "lucide-react";
@@ -29,6 +31,16 @@ const ADMIN_NAV = [
   { to: "/dashboard", end: false, icon: LayoutDashboard, labelKey: "nav.overview" },
   { to: "/findings", end: false, icon: ClipboardList, labelKey: "nav.manageReports" },
 ] as const;
+
+const SIDEBAR_COLLAPSED_KEY = "urbaneye.sidebarCollapsed";
+
+function readStoredSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 // capsule, not rounded-lg: Apple's Liquid Glass controls default to a
 // capsule shape ("`.glassEffect()` applies the `.regular` variant in a
@@ -148,17 +160,32 @@ export function AppShell({
 }) {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredSidebarCollapsed);
   const sidebarRef = useGlassPointer<HTMLElement>();
   const headerRef = useGlassPointer<HTMLElement>();
 
+  function toggleSidebar() {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // ignore write failures — the toggle still works for this session
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="flex min-h-screen">
-      <aside
-        ref={sidebarRef}
-        className="glass-surface sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex"
-      >
-        <SidebarContent />
-      </aside>
+      {!sidebarCollapsed && (
+        <aside
+          ref={sidebarRef}
+          className="glass-surface sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 border-e border-white/8 p-4 md:flex"
+        >
+          <SidebarContent />
+        </aside>
+      )}
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
@@ -192,6 +219,13 @@ export function AppShell({
               aria-label={t("nav.openMenu")}
             >
               <Menu size={20} />
+            </button>
+            <button
+              onClick={toggleSidebar}
+              className="hidden rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:flex"
+              aria-label={sidebarCollapsed ? t("nav.openMenu") : t("nav.closeMenu")}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
             </button>
             <div>
               {breadcrumbs && breadcrumbs.length > 0 && (

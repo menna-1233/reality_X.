@@ -15,9 +15,8 @@ function detectInitialLanguage(): AppLanguage {
   } catch {
     // localStorage unavailable (private mode, disabled storage, etc.) — fall through
   }
-  // The app has always been Arabic-first; keep that as the default for anyone
-  // who hasn't explicitly switched.
-  return "ar";
+  // Default to English for anyone who hasn't explicitly switched.
+  return "en";
 }
 
 export function applyDocumentDirection(lang: AppLanguage) {
@@ -33,7 +32,7 @@ void i18next.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: initialLanguage,
-  fallbackLng: "ar",
+  fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
 
