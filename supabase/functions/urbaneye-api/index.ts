@@ -372,27 +372,41 @@ async function sendDepartmentNotification(report: any): Promise<void> {
   }
 
   const severityAr = EMAIL_SEVERITY_AR[report.severity ?? ""] ?? "";
-  const smtp = new SMTPClient({
-    connection: {
-      hostname: SMTP_HOST,
-      port: SMTP_PORT,
-      tls: SMTP_USE_SSL,
-      auth: { username: SMTP_EMAIL, password: SMTP_APP_PASSWORD },
-    },
-  });
 
+  // Everything below — including the client's own close() — is one
+  // failure domain: denomailer throws its own secondary error out of
+  // close() when send() never got as far as opening a connection (e.g. a
+  // rejected recipient), so close() must never be allowed to escape and
+  // clobber the original, more useful error.
   try {
-    await smtp.send({
-      from: `UrbanEye AI <${SMTP_EMAIL}>`,
-      to: toEmail,
-      subject: `بلاغ جديد - ${report.department ?? "إدارة عامة"} (خطورة: ${severityAr})`,
-      content: buildEmailBody(report),
+    const smtp = new SMTPClient({
+      connection: {
+        hostname: SMTP_HOST,
+        port: SMTP_PORT,
+        tls: SMTP_USE_SSL,
+        auth: { username: SMTP_EMAIL, password: SMTP_APP_PASSWORD },
+      },
     });
-    console.log(`Department email sent to ${toEmail} for report ${report.id}`);
+    try {
+      await smtp.send({
+        from: `UrbanEye AI <${SMTP_EMAIL}>`,
+        to: toEmail,
+        subject: `بلاغ جديد - ${report.department ?? "إدارة عامة"} (خطورة: ${severityAr})`,
+        content: buildEmailBody(report),
+      });
+      console.log(`Department email sent to ${toEmail} for report ${report.id}`);
+    } finally {
+      // denomailer's close() isn't reliably a Promise (sometimes throws
+      // synchronously, sometimes returns undefined) — a plain try/catch
+      // around the await handles both, unlike chaining .catch() onto it.
+      try {
+        await smtp.close();
+      } catch {
+        // cleanup failure here never matters to the caller
+      }
+    }
   } catch (err) {
     console.error("Failed to send department notification email:", err);
-  } finally {
-    await smtp.close();
   }
 }
 
@@ -568,8 +582,15 @@ Deno.serve(async (req) => {
         if (insertError) throw insertError;
 
         // Email the department responsible for this problem type. Never
-        // blocks/fails the request if SMTP is unset or unreachable.
-        await sendDepartmentNotification(inserted);
+        // blocks/fails the request if SMTP is unset or unreachable —
+        // sendDepartmentNotification already catches internally, but the
+        // report the citizen submitted must be saved either way, so this
+        // is caught again at the call site as a second line of defense.
+        try {
+          await sendDepartmentNotification(inserted);
+        } catch (err) {
+          console.error("Department email step failed unexpectedly:", err);
+        }
 
         const { data: incident } = await client
           .from("incidents")
