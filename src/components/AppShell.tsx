@@ -60,7 +60,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const adminStatus = useAdminSession();
+  const { status: adminStatus, email: adminEmail } = useAdminSession();
   const isAdmin = adminStatus === "in";
 
   async function handleSignOut() {
@@ -118,14 +118,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="space-y-2 border-t border-white/8 pt-3">
         {isAdmin ? (
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
-          >
-            <LogOut size={16} />
-            {t("nav.adminSignOut")}
-          </button>
+          <>
+            {adminEmail && (
+              <p className="truncate px-3 text-[11px] text-slate-500" title={adminEmail}>
+                {adminEmail}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+            >
+              <LogOut size={16} />
+              {t("nav.adminSignOut")}
+            </button>
+          </>
         ) : (
           <NavLink
             to="/admin/login"
@@ -144,6 +151,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     </>
   );
 }
+
+// Routes that need all the horizontal room they can get — the report form
+// (image + fields) and the map/list-heavy admin screens (dashboard,
+// findings) — force-collapse the sidebar the moment the user navigates to
+// one of them. They can still reopen it with the toggle below if they need
+// the nav.
+const AUTO_COLLAPSE_ROUTES = ["/", "/dashboard", "/findings"];
 
 export function AppShell({
   title,
@@ -164,14 +178,12 @@ export function AppShell({
   const sidebarRef = useGlassPointer<HTMLElement>();
   const headerRef = useGlassPointer<HTMLElement>();
 
-  // The report form needs all the horizontal room it can get, so collapse
-  // the sidebar automatically the moment the user navigates there — they
-  // can still reopen it with the toggle below if they need the nav. Adjusted
+  // Force-collapse on entry to any AUTO_COLLAPSE_ROUTES route. Adjusted
   // during render (not an effect) so it lands in the same commit as the
   // navigation instead of causing an extra render pass.
   if (location.pathname !== lastRoute) {
     setLastRoute(location.pathname);
-    if (location.pathname === "/") {
+    if (AUTO_COLLAPSE_ROUTES.includes(location.pathname)) {
       setSidebarCollapsed(true);
     }
   }
@@ -222,7 +234,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header
           ref={headerRef}
-          className="glass-surface sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6"
+          className="glass-surface sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-4 py-3 md:px-6"
         >
           <div className="flex items-center gap-3">
             <button
@@ -248,7 +260,7 @@ export function AppShell({
               <h1 className="text-lg font-bold text-white md:text-xl">{title}</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">{actions}</div>
+          <div className="ms-auto flex items-center gap-2">{actions}</div>
           <div className="scroll-edge-fade" aria-hidden="true" />
         </header>
 

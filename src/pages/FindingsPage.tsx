@@ -202,7 +202,7 @@ export function FindingsPage() {
   return (
     <AppShell
       title={t("nav.manageReports")}
-      breadcrumbs={[t("nav.adminSection"), t("nav.reports")]}
+      breadcrumbs={[t("nav.reports")]}
       actions={
         <div className="flex items-center gap-2">
           <div className="surface-panel flex items-center rounded-lg border border-white/8 p-0.5">

@@ -41,6 +41,18 @@ function reportCoords(r: Report): [number, number] | null {
   return r.latitude != null && r.longitude != null ? [r.latitude, r.longitude] : null;
 }
 
+/**
+ * Resolution-rate gauge color, on plain round thresholds: below 40% is bad
+ * (critical/red), 40-69% is middling (medium/amber), 70%+ is healthy
+ * (low/green). Reuses the existing severity tokens rather than inventing
+ * new colors — never accent, per this codebase's severity-color convention.
+ */
+function resolutionGaugeColor(pct: number): string {
+  if (pct < 40) return "var(--color-severity-critical)";
+  if (pct < 70) return "var(--color-severity-medium)";
+  return "var(--color-severity-low)";
+}
+
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
@@ -168,10 +180,11 @@ export function DashboardPage() {
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 15);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
-      className: "map-tiles-dark",
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 20,
     }).addTo(map);
     markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -231,19 +244,10 @@ export function DashboardPage() {
   }, [filtered, t, i18n, i18n.language]);
 
   return (
-    <AppShell title={t("nav.overview")} breadcrumbs={[t("nav.adminSection")]}>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
-            <Chip active={dept === "all"} onClick={() => setDept("all")}>
-              {t("common.allReports")}
-            </Chip>
-            {departments.map((d) => (
-              <Chip key={d} active={dept === d} onClick={() => setDept(d)}>
-                {departmentLabel(t, d)}
-              </Chip>
-            ))}
-          </div>
+    <AppShell
+      title={t("nav.overview")}
+      actions={
+        <>
           <div className="surface-panel flex min-w-[220px] items-center gap-2 rounded-lg border border-white/8 px-3.5 py-2">
             <Search size={15} className="text-slate-500" />
             <input
@@ -262,6 +266,19 @@ export function DashboardPage() {
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {t("dashboardPage.exportExcel", { defaultValue: "تحميل Excel" })}
           </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <Chip active={dept === "all"} onClick={() => setDept("all")}>
+            {t("common.allReports")}
+          </Chip>
+          {departments.map((d) => (
+            <Chip key={d} active={dept === d} onClick={() => setDept(d)} title={departmentLabel(t, d)}>
+              {departmentLabel(t, d)}
+            </Chip>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_300px]">
@@ -274,13 +291,17 @@ export function DashboardPage() {
                 delta={trendDelta}
                 deltaGoodDirection="down"
               />
-              <StatTile label={t("dashboardPage.statLinked")} value={linkedGroupsCount} />
-              <StatTile label={severityLabel(t, "critical")} value={criticalCount} />
-              <StatTile label={statusLabel(t, "resolved")} value={resolvedCount} />
+              <StatTile
+                label={t("dashboardPage.statLinked")}
+                labelHint={t("dashboardPage.statLinkedCaption")}
+                value={linkedGroupsCount}
+              />
+              <StatTile label={severityLabel(t, "critical")} value={criticalCount} tone="critical" />
+              <StatTile label={statusLabel(t, "resolved")} value={resolvedCount} tone="success" />
             </div>
 
             <div className="surface-panel flex items-center gap-3 rounded-xl border border-white/8 p-3.5">
-              <Gauge pct={resolutionRate} color="var(--color-accent-500)" />
+              <Gauge pct={resolutionRate} color={resolutionGaugeColor(resolutionRate)} />
               <div className="min-w-0">
                 <p className="text-[11px] text-slate-400">{t("dashboardPage.resolutionRate")}</p>
                 <p className="mt-0.5 text-[10px] text-slate-500">{t("dashboardPage.resolutionRateCaption")}</p>
@@ -290,10 +311,13 @@ export function DashboardPage() {
             <div className="surface-panel rounded-xl border border-white/8 p-3.5">
               <p className="text-[11px] text-slate-400">{t("dashboardPage.avgOpenAge")}</p>
               <p className="mt-1 font-mono text-2xl font-bold text-white">{avgOpenAgeLabel}</p>
-              <div className="mt-2">
-                <Sparkline values={trend} color="var(--color-accent-400)" variant="bar" />
+
+              <div className="mt-3 border-t border-white/8 pt-3">
+                <p className="text-[10px] text-slate-500">{t("dashboardPage.trendCaption")}</p>
+                <div className="mt-1.5">
+                  <Sparkline values={trend} color="var(--color-accent-400)" variant="bar" />
+                </div>
               </div>
-              <p className="mt-1 text-[10px] text-slate-500">{t("dashboardPage.trendCaption")}</p>
             </div>
 
             <div className="surface-panel space-y-1 rounded-xl border border-white/8 p-3">
@@ -311,6 +335,14 @@ export function DashboardPage() {
                 {unmappedCount} {t("dashboardPage.unmappedSuffix")}
               </div>
             )}
+            <div className="surface-panel pointer-events-none absolute top-3 end-3 space-y-1 rounded-lg border border-white/10 px-2.5 py-2">
+              {(["critical", "high", "medium", "low"] as Severity[]).map((s) => (
+                <div key={s} className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: SEVERITY_COLOR[s] }} />
+                  {severityLabel(t, s)}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* right rail */}
@@ -333,7 +365,7 @@ export function DashboardPage() {
                       <p className="truncate text-xs font-semibold text-slate-100">
                         {problemTypeLabel(t, r.analysis.problemType)}
                       </p>
-                      <p className="truncate text-[10px] text-slate-500">
+                      <p className="truncate text-[11px] text-slate-400">
                         {r.location} · {formatRelativeTime(r.createdAt, t)}
                       </p>
                     </Link>
@@ -350,7 +382,10 @@ export function DashboardPage() {
                 <div className="space-y-1.5">
                   {byType.map(([type, count]) => (
                     <div key={type} className="flex items-center gap-2 text-[11px]">
-                      <span className="w-20 shrink-0 truncate text-slate-400">
+                      <span
+                        className="w-20 shrink-0 truncate text-slate-400"
+                        title={problemTypeLabel(t, type as ProblemType)}
+                      >
                         {problemTypeLabel(t, type as ProblemType)}
                       </span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">

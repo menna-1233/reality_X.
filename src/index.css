@@ -89,10 +89,6 @@ body {
     0 24px 60px -12px rgba(0, 0, 0, 0.65);
 }
 
-.map-tiles-dark {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.6);
-}
-
 /* ── Liquid Glass ──────────────────────────────────────────────────────
    Apple's "Liquid Glass" material (WWDC 2025 / iOS 26 design language),
    adapted for the web: a translucent pane that lets content stay visible
