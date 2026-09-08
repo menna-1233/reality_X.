@@ -531,12 +531,18 @@ Deno.serve(async (req) => {
         const form = await req.formData();
         const image = form.get("image") as File | null;
         if (!image) return json({ detail: "image is required" }, 422);
-        const description = String(form.get("description") ?? "");
-        const locationText = String(form.get("location_text") ?? "");
+        const description = String(form.get("description") ?? "").trim();
+        if (!description) return json({ detail: "description is required" }, 422);
+        const locationText = String(form.get("location_text") ?? "").trim();
         const latRaw = form.get("latitude");
         const lngRaw = form.get("longitude");
         const latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
         const longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
+        // Location is either coordinates (from "use my location") or typed
+        // text — the citizen must supply one or the other, not neither.
+        if (latitude == null && longitude == null && !locationText) {
+          return json({ detail: "location is required" }, 422);
+        }
         const communityId = String(form.get("community_id") ?? "") || DEFAULT_COMMUNITY_ID;
         const language = parseLanguage(form.get("language"));
 

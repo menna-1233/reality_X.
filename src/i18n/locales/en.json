@@ -107,6 +107,8 @@
     "locationUnavailable": "Location isn't available on this device",
     "locationFailed": "Couldn't determine your location",
     "imageRequiredError": "Please add a photo showing the problem",
+    "descriptionRequiredError": "Please describe the problem",
+    "locationRequiredError": "Please add the location",
     "submitError": "Something went wrong while sending your report. Check that the backend is reachable and try again",
     "analyzing": "AI is analyzing the photo...",
     "submit": "Send Report",
