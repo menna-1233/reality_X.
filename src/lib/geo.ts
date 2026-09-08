@@ -19,9 +19,12 @@ interface NominatimAddress {
   suburb?: string;
   quarter?: string;
   city_district?: string;
+  hamlet?: string;
   town?: string;
   village?: string;
   city?: string;
+  county?: string;
+  state_district?: string;
   state?: string;
 }
 
@@ -31,16 +34,25 @@ interface NominatimAddress {
  * starting with a building/POI name unrelated to the pin, sometimes in the
  * wrong country's admin hierarchy for sparsely-mapped areas) which reads as
  * vague or outright wrong. Picks the most precise street/area we got, plus
- * one city-level part for context — at most 2-3 parts.
+ * one city-level part for context. In rural/unmapped areas (no street or
+ * neighbourhood data — a bare village name like "طناح" is ambiguous on its
+ * own) it adds the county/governorate too, so the place can actually be
+ * found on a map. Caps out at 3 parts either way.
  */
 function formatAddress(address: NominatimAddress): string | null {
   const street = address.road
     ? [address.house_number, address.road].filter(Boolean).join(" ")
     : null;
   const area = address.neighbourhood ?? address.quarter ?? address.suburb ?? address.city_district;
-  const city = address.city ?? address.town ?? address.village ?? address.state;
+  const settlement = address.city ?? address.town ?? address.village ?? address.hamlet;
+  const region = address.county ?? address.state_district ?? address.state;
 
-  const parts = [street, area, city].filter((p): p is string => Boolean(p));
+  // Prefer street/area + settlement; only reach for the region when we
+  // don't have at least two specific parts (i.e. all we found is a bare
+  // village/city name), since that's when it's too ambiguous alone.
+  const specific = [street, area, settlement].filter((p): p is string => Boolean(p));
+  const parts = specific.length >= 2 ? specific : [...specific, region].filter((p): p is string => Boolean(p));
+
   // De-dupe (Nominatim sometimes repeats the same name across levels).
   const unique = [...new Set(parts)];
   return unique.length > 0 ? unique.slice(0, 3).join("، ") : null;
