@@ -11,6 +11,19 @@ export function problemTypeLabel(t: TFunction, type: ProblemType): string {
   return t(`problemType.${type}`);
 }
 
+/**
+ * The responsible department is always a deterministic function of the
+ * problem type (see backend/app/mock_ai.py and
+ * supabase/functions/urbaneye-api/index.ts — every AI backend picks it from
+ * problem_type alone). Deriving it here instead of showing the raw
+ * `analysis.department` string stored on the report keeps department
+ * display/filtering correct and language-consistent even for reports that
+ * were created before this fix, or in the other language.
+ */
+export function departmentLabel(t: TFunction, type: ProblemType): string {
+  return t(`department.${type}`);
+}
+
 export function severityLabel(t: TFunction, severity: Severity): string {
   return t(`severity.${severity}`);
 }

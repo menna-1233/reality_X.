@@ -26,7 +26,7 @@ import { SeverityBadge } from "../components/SeverityBadge";
 import { SlideOver } from "../components/SlideOver";
 import { StatusBadge } from "../components/StatusBadge";
 import { buildLinkedReportsLookup } from "../lib/incidents";
-import { eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
+import { departmentLabel, eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
 import { listReports, setReportStatus } from "../lib/storage";
 import { formatRelativeTime } from "../lib/time";
 import type { Report, ReportStatus, Severity } from "../types";
@@ -168,7 +168,7 @@ export function FindingsPage() {
     {
       key: "dept",
       label: t("findingsPage.colDepartment"),
-      render: (r) => <span className="text-xs text-slate-400">{r.analysis.department}</span>,
+      render: (r) => <span className="text-xs text-slate-400">{departmentLabel(t, r.analysis.problemType)}</span>,
     },
     {
       key: "confidence",
@@ -387,7 +387,7 @@ export function FindingsPage() {
                 </p>
                 <div className="space-y-2 text-sm">
                   <Row label={t("common.location")} value={selected.location || t("findingsPage.noLocation")} />
-                  <Row label={t("common.department")} value={selected.analysis.department} />
+                  <Row label={t("common.department")} value={departmentLabel(t, selected.analysis.problemType)} />
                   <Row label={t("common.confidence")} value={`${Math.round(selected.analysis.confidence * 100)}%`} />
                 </div>
                 <div className="space-y-1.5">

@@ -23,7 +23,7 @@ import { StatTile } from "../components/StatTile";
 import { apiExportReportsExcel } from "../lib/api";
 import { parseLatLng } from "../lib/geo";
 import { groupIntoIncidents } from "../lib/incidents";
-import { eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
+import { departmentLabel, eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
 import { listRecentEvents, listReports } from "../lib/storage";
 import { formatRelativeTime } from "../lib/time";
 import type { ProblemType, Report, Severity } from "../types";
@@ -58,15 +58,21 @@ export function DashboardPage() {
     listReports().then(setReports).catch(() => setReports([]));
   }, []);
 
+  // The responsible department is always a deterministic function of the
+  // problem type (see departmentLabel in lib/labels.ts) — grouping and
+  // filtering by problemType (rather than the raw, possibly differently-
+  // worded-per-language `analysis.department` string stored on the report)
+  // keeps this correct across languages and for reports created before a
+  // language-aware backend existed.
   const departments = useMemo(
-    () => Array.from(new Set(reports.map((r) => r.analysis.department))),
+    () => Array.from(new Set(reports.map((r) => r.analysis.problemType))),
     [reports],
   );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return reports.filter((r) => {
-      if (dept !== "all" && r.analysis.department !== dept) return false;
+      if (dept !== "all" && r.analysis.problemType !== dept) return false;
       if (!q) return true;
       const hay = `${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
       return hay.includes(q);
@@ -237,7 +243,7 @@ export function DashboardPage() {
             </Chip>
             {departments.map((d) => (
               <Chip key={d} active={dept === d} onClick={() => setDept(d)}>
-                {d}
+                {departmentLabel(t, d)}
               </Chip>
             ))}
           </div>

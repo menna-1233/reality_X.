@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
-import { problemTypeLabel, severityLabel } from "../lib/labels";
+import { departmentLabel, problemTypeLabel, severityLabel } from "../lib/labels";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
 
@@ -87,7 +87,7 @@ export function ReportPage() {
             <div className="space-y-3 p-4">
               <Row label={t("reportPage.rowType")} value={problemTypeLabel(t, lastReport.analysis.problemType)} />
               <Row label={t("reportPage.rowSeverity")} value={severityLabel(t, lastReport.analysis.severity)} />
-              <Row label={t("common.department")} value={lastReport.analysis.department} />
+              <Row label={t("common.department")} value={departmentLabel(t, lastReport.analysis.problemType)} />
               <Row
                 label={t("common.confidence")}
                 value={`${Math.round(lastReport.analysis.confidence * 100)}%`}

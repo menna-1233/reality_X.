@@ -35,6 +35,14 @@
     "accident": "Accident",
     "other": "Other issue"
   },
+  "department": {
+    "pothole": "Roads & Maintenance Department",
+    "garbage": "Sanitation Department",
+    "water_leak": "Maintenance & Utilities Department",
+    "broken_light": "Electrical Department",
+    "accident": "Security & Emergency Response",
+    "other": "General Administration"
+  },
   "severity": {
     "low": "Low",
     "medium": "Medium",

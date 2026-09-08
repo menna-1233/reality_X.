@@ -6,7 +6,7 @@ import { AppShell } from "../components/AppShell";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { StatusBadge } from "../components/StatusBadge";
 import { findLinkedReports } from "../lib/incidents";
-import { problemTypeLabel } from "../lib/labels";
+import { departmentLabel, problemTypeLabel } from "../lib/labels";
 import { getReport, listReports } from "../lib/storage";
 import { formatRelativeTime } from "../lib/time";
 import type { Report, ReportStatus } from "../types";
@@ -109,7 +109,7 @@ export function ReportDetailPage() {
               <p className="text-sm text-slate-400">{report.analysis.summary}</p>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{t("common.department")}</span>
-                <span className="font-medium text-slate-200">{report.analysis.department}</span>
+                <span className="font-medium text-slate-200">{departmentLabel(t, report.analysis.problemType)}</span>
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
