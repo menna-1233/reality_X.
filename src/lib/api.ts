@@ -1,5 +1,4 @@
 import i18n from "../i18n/config";
-import { parseLatLng } from "./geo";
 import { getAdminAccessToken } from "./adminAuth";
 import type { Analysis, Report, ReportEvent, ReportStatus } from "../types";
 
@@ -49,11 +48,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Prefer the human-readable address for display — falling back to raw
+// coordinates only when we have no address text at all (e.g. reverse
+// geocoding failed, or an older report predates it). `latitude`/`longitude`
+// are exposed separately on Report for anything (like the dashboard map)
+// that needs real numeric coordinates rather than a display string.
 function formatLocation(latitude: number | null, longitude: number | null, locationText: string | null): string {
+  if (locationText) return locationText;
   if (latitude != null && longitude != null) {
     return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
   }
-  return locationText ?? "";
+  return "";
 }
 
 /**
@@ -78,6 +83,8 @@ function toFrontendReport(api: ApiReport): Report {
     imageDataUrl: api.image_url,
     description: api.description ?? "",
     location: formatLocation(api.latitude, api.longitude, api.location_text),
+    latitude: api.latitude,
+    longitude: api.longitude,
     createdAt: api.created_at,
     status: api.status,
     events: synthesizeEvents(api),
@@ -109,13 +116,24 @@ export async function apiGetReport(id: string): Promise<Report | undefined> {
 export interface SubmitReportInput {
   imageFile: File;
   description: string;
+  /** Display text — an address if reverse geocoding resolved one, else whatever the citizen typed. */
   location: string;
+  /**
+   * Numeric coordinates from "use my location", captured separately from
+   * `location` so resolving `location` into an address (see ReportPage's
+   * useMyLocation) never loses them — both get sent together, so the report
+   * carries an address AND real coordinates the dashboard map can plot.
+   */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export async function apiCreateReport({
   imageFile,
   description,
   location,
+  latitude,
+  longitude,
 }: SubmitReportInput): Promise<Report> {
   const form = new FormData();
   form.append("image", imageFile);
@@ -124,12 +142,10 @@ export async function apiCreateReport({
   // to respond in — see supabase/functions/urbaneye-api/index.ts.
   form.append("language", i18n.language === "en" ? "en" : "ar");
 
-  const latLng = parseLatLng(location);
-  if (latLng) {
-    form.append("latitude", String(latLng[0]));
-    form.append("longitude", String(latLng[1]));
-  } else {
-    form.append("location_text", location);
+  if (location) form.append("location_text", location);
+  if (latitude != null && longitude != null) {
+    form.append("latitude", String(latitude));
+    form.append("longitude", String(longitude));
   }
 
   const row = await request<ApiReport>("/reports", { method: "POST", body: form });

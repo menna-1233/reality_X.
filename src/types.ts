@@ -31,6 +31,10 @@ export interface Report {
   imageDataUrl: string;
   description: string;
   location: string;
+  /** Numeric coordinates, when the citizen used "use my location" — independent of
+   *  `location` (always a display string: address if resolved, else raw coordinates). */
+  latitude: number | null;
+  longitude: number | null;
   createdAt: string; // ISO date
   analysis: Analysis;
   status: ReportStatus;

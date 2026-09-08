@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { PhotoDropzone } from "../components/PhotoDropzone";
-import { reverseGeocode } from "../lib/geo";
+import { parseLatLng, reverseGeocode } from "../lib/geo";
 import { departmentLabel, problemTypeLabel, severityLabel } from "../lib/labels";
 import { addReport } from "../lib/storage";
 import type { Report } from "../types";
@@ -17,6 +17,12 @@ export function ReportPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  // Numeric coordinates from "use my location", tracked separately from the
+  // `location` display text — that text gets overwritten with a readable
+  // address once reverse geocoding resolves (see useMyLocation below), and
+  // without this the coordinates were lost entirely: the backend never
+  // received them, so the report couldn't be plotted on the dashboard map.
+  const [coords, setCoords] = useState<[number, number] | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [locating, setLocating] = useState(false);
   const [lastReport, setLastReport] = useState<Report | null>(null);
@@ -31,15 +37,16 @@ export function ReportPage() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        setCoords([latitude, longitude]);
         // Show coordinates immediately, then swap in the readable address
         // once reverse-geocoding resolves (or keep the coordinates on failure).
-        setLocation(coords);
+        setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
         const address = await reverseGeocode(latitude, longitude);
         if (address) setLocation(address);
         setLocating(false);
       },
       () => {
+        setCoords(null);
         setLocation(t("reportPage.locationFailed"));
         setLocating(false);
       },
@@ -66,7 +73,13 @@ export function ReportPage() {
     try {
       // The backend does the AI analysis + incident grouping and returns the
       // finished report — no client-side mock step anymore.
-      const report = await addReport({ imageFile, description, location });
+      const report = await addReport({
+        imageFile,
+        description,
+        location,
+        latitude: coords?.[0] ?? null,
+        longitude: coords?.[1] ?? null,
+      });
       setLastReport(report);
       setStatus("done");
     } catch {
@@ -79,6 +92,7 @@ export function ReportPage() {
     setImageFile(null);
     setDescription("");
     setLocation("");
+    setCoords(null);
     setLastReport(null);
     setStatus("idle");
   }
@@ -158,7 +172,14 @@ export function ReportPage() {
           <div className="flex gap-2">
             <input
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setLocation(value);
+                // Editing by hand invalidates any coordinates captured via
+                // "use my location" — unless what they typed is itself a
+                // "lat, lon" pair, keep recognizing that too.
+                setCoords(parseLatLng(value));
+              }}
               required
               placeholder={t("reportPage.locationPlaceholder")}
               className="surface-panel flex-1 rounded-lg border border-white/8 p-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
