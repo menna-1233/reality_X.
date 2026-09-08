@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  HelpCircle,
   Inbox,
   LayoutDashboard,
   LogIn,
@@ -111,13 +110,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="space-y-2 border-t border-white/8 pt-3">
-        <a
-          href="#"
-          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
-        >
-          <HelpCircle size={16} />
-          المساعدة والتوثيق
-        </a>
         {isAdmin ? (
           <button
             type="button"
