@@ -34,9 +34,7 @@ export function ReportPage() {
         // once reverse-geocoding resolves (or keep the coordinates on failure).
         setLocation(coords);
         const address = await reverseGeocode(latitude, longitude);
-        // Keep the raw coordinates alongside the name so it can be checked
-        // against a map — the label is only as accurate as the device's GPS fix.
-        if (address) setLocation(`${address} (${coords})`);
+        if (address) setLocation(address);
         setLocating(false);
       },
       () => {
