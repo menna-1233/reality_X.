@@ -6,13 +6,24 @@ email address and sends a notification the moment a report is created —
 so the responsible team is alerted immediately, without checking a
 dashboard.
 
-Setup (Gmail):
+Setup (Gmail, for real production sending):
     1. Enable 2-Step Verification on the Gmail account.
     2. Create an App Password: https://myaccount.google.com/apppasswords
     3. Set in backend/.env:
         SMTP_ENABLED=true
         SMTP_EMAIL=your_email@gmail.com
         SMTP_APP_PASSWORD=xxxx xxxx xxxx xxxx   (16-char app password)
+
+Setup (Ethereal, for testing without a real mailbox):
+    Ethereal (https://ethereal.email) gives you a disposable SMTP inbox —
+    emails "sent" through it never leave Ethereal, but you can log in at
+    ethereal.email/messages with the same user/pass and read them.
+        SMTP_ENABLED=true
+        SMTP_HOST=smtp.ethereal.email
+        SMTP_PORT=587
+        SMTP_USE_SSL=false
+        SMTP_EMAIL=<ethereal user>
+        SMTP_APP_PASSWORD=<ethereal pass>
 
 If SMTP is disabled or misconfigured, notifications are silently
 skipped — this must never break report creation.
@@ -54,6 +65,11 @@ def _department_emails() -> dict[str, str]:
 
 
 def _recipient_for(problem_type: str) -> str:
+    # A configured test recipient overrides real department routing, so every
+    # notification lands in one inbox you can actually check (e.g. an
+    # Ethereal test inbox, or your own email) while trying the feature out.
+    if settings.test_recipient_email:
+        return settings.test_recipient_email
     return _department_emails().get(problem_type, _DEFAULT_DEPARTMENT_EMAILS["other"])
 
 
@@ -103,7 +119,6 @@ def send_department_notification(report: dict) -> bool:
         return False
 
     try:
-
         msg = MIMEMultipart()
         msg["From"] = settings.smtp_email
         msg["To"] = to_email
@@ -113,9 +128,15 @@ def send_department_notification(report: dict) -> bool:
         )
         msg.attach(MIMEText(_build_email_body(report), "plain", "utf-8"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(settings.smtp_email, settings.smtp_app_password)
-            server.send_message(msg)
+        if settings.smtp_use_ssl:
+            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port) as server:
+                server.login(settings.smtp_email, settings.smtp_app_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+                server.starttls()
+                server.login(settings.smtp_email, settings.smtp_app_password)
+                server.send_message(msg)
 
         logger.info("Department email sent to %s for report %s", to_email, report.get("id"))
         return True
