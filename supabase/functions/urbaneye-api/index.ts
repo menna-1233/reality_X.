@@ -371,7 +371,17 @@ async function sendDepartmentNotification(report: any): Promise<void> {
     return;
   }
 
-  const severityAr = EMAIL_SEVERITY_AR[report.severity ?? ""] ?? "";
+  // Subject stays pure ASCII on purpose — denomailer's RFC 2047 encoder
+  // (config/mail/encoding.ts: quotedPrintableEncodeInline) reuses the
+  // *body* quoted-printable folder, which inserts a literal "=\r\n" soft
+  // line-break every ~74 chars. That's valid inside a MIME body but not
+  // inside a single header encoded-word — Arabic text easily exceeds 74
+  // encoded chars, so the Subject header ends up with a bare CRLF in it,
+  // corrupting the whole message (Gmail then renders raw MIME source
+  // instead of the email). Non-ASCII text is fine in the body, which uses
+  // proper body-level QP folding — just never in the Subject.
+  const departmentEn = DEPARTMENTS.en[(report.problem_type as ProblemType) ?? "other"] ?? "General Administration";
+  const subject = `UrbanEye AI - New Report: ${departmentEn} (severity: ${report.severity ?? "unknown"})`;
 
   // Everything below — including the client's own close() — is one
   // failure domain: denomailer throws its own secondary error out of
@@ -391,7 +401,7 @@ async function sendDepartmentNotification(report: any): Promise<void> {
       await smtp.send({
         from: `UrbanEye AI <${SMTP_EMAIL}>`,
         to: toEmail,
-        subject: `بلاغ جديد - ${report.department ?? "إدارة عامة"} (خطورة: ${severityAr})`,
+        subject,
         content: buildEmailBody(report),
       });
       console.log(`Department email sent to ${toEmail} for report ${report.id}`);
