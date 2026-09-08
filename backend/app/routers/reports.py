@@ -9,6 +9,7 @@ from ..db import get_client
 from ..email_service import send_department_notification
 from ..excel_export import build_reports_excel
 from ..incidents import find_or_create_incident
+from ..mock_ai import Language
 from ..ollama_ai import analyze as run_ai
 from ..notifications import maybe_notify
 from ..schemas import ReportOut, ReportStatusUpdate
@@ -27,6 +28,7 @@ async def create_report(
     latitude: Optional[float] = Form(default=None),
     longitude: Optional[float] = Form(default=None),
     community_id: Optional[str] = Form(default=None),
+    language: Language = Form(default="ar"),
 ) -> ReportOut:
     client = get_client()
     community_id = community_id or settings.default_community_id
@@ -42,7 +44,9 @@ async def create_report(
 
     # 2. Analyze — real open-source model via Ollama (app/ollama_ai.py) when
     #    AI_BACKEND=ollama, else the keyword-heuristic mock as a fallback.
-    analysis = run_ai(description, contents)
+    #    `language` (sent by the frontend as the citizen's current UI
+    #    language) picks which language the department/summary come back in.
+    analysis = run_ai(description, contents, language=language)
 
     # 3. Group into an incident
     incident_id = find_or_create_incident(

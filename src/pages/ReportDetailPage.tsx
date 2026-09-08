@@ -1,30 +1,23 @@
-import { Link2, MapPin } from "lucide-react";
+import { ArrowLeft, Link2, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { StatusBadge } from "../components/StatusBadge";
 import { findLinkedReports } from "../lib/incidents";
+import { problemTypeLabel } from "../lib/labels";
 import { getReport, listReports } from "../lib/storage";
-import { PROBLEM_TYPE_LABELS } from "../types";
+import { formatRelativeTime } from "../lib/time";
 import type { Report, ReportStatus } from "../types";
 
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  const days = Math.floor(hours / 24);
-  return `منذ ${days} يوم`;
-}
-
-const TRAIL: { key: ReportStatus; label: string }[] = [
-  { key: "open", label: "تم الإبلاغ" },
-  { key: "open", label: "مفتوح" },
-  { key: "in_progress", label: "جاري التنفيذ" },
-  { key: "resolved", label: "تم الحل" },
+// key stays "open" for both trail steps below — statusStepIndex compares
+// against the step's *position*, not this field, so the repeat is fine.
+const TRAIL: { key: ReportStatus; labelKey: string }[] = [
+  { key: "open", labelKey: "reportDetailPage.trailReported" },
+  { key: "open", labelKey: "status.open" },
+  { key: "in_progress", labelKey: "status.in_progress" },
+  { key: "resolved", labelKey: "status.resolved" },
 ];
 
 function statusStepIndex(status: ReportStatus): number {
@@ -35,6 +28,7 @@ function statusStepIndex(status: ReportStatus): number {
 }
 
 export function ReportDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null | undefined>(undefined);
   const [allReports, setAllReports] = useState<Report[]>([]);
@@ -55,11 +49,11 @@ export function ReportDetailPage() {
 
   if (report === null) {
     return (
-      <AppShell title="البلاغ غير موجود" breadcrumbs={["البلاغات"]}>
+      <AppShell title={t("reportDetailPage.notFoundTitle")} breadcrumbs={[t("nav.reports")]}>
         <div className="mx-auto max-w-lg space-y-4 py-10 text-center text-slate-400">
-          <p>البلاغ غير موجود</p>
+          <p>{t("reportDetailPage.notFoundBody")}</p>
           <Link to="/feed" className="text-accent-400 underline">
-            الرجوع لكل البلاغات
+            {t("reportDetailPage.backToAll")}
           </Link>
         </div>
       </AppShell>
@@ -72,24 +66,25 @@ export function ReportDetailPage() {
 
   return (
     <AppShell
-      title={PROBLEM_TYPE_LABELS[report.analysis.problemType]}
-      breadcrumbs={["البلاغات", `#${report.id.slice(0, 6)}`]}
+      title={problemTypeLabel(t, report.analysis.problemType)}
+      breadcrumbs={[t("nav.reports"), `#${report.id.slice(0, 6)}`]}
     >
       <div className="mx-auto max-w-lg space-y-4">
-        <Link to="/feed" className="text-sm text-accent-400">
-          ← رجوع لكل البلاغات
+        <Link to="/feed" className="inline-flex items-center gap-1 text-sm text-accent-400">
+          <ArrowLeft size={14} className="rtl:rotate-180" />
+          {t("reportDetailPage.backToAll")}
         </Link>
 
         <div className="surface-panel overflow-hidden rounded-xl border border-white/8">
           <img
             src={report.imageDataUrl}
-            alt={PROBLEM_TYPE_LABELS[report.analysis.problemType]}
+            alt={problemTypeLabel(t, report.analysis.problemType)}
             className="h-56 w-full object-cover"
           />
           <div className="space-y-4 p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">
-                {PROBLEM_TYPE_LABELS[report.analysis.problemType]}
+                {problemTypeLabel(t, report.analysis.problemType)}
               </h2>
               <div className="flex items-center gap-1.5">
                 <SeverityBadge severity={report.analysis.severity} />
@@ -110,15 +105,15 @@ export function ReportDetailPage() {
             )}
 
             <div className="space-y-2 border-t border-white/8 pt-3">
-              <p className="text-sm font-semibold text-slate-200">تحليل الـ AI</p>
+              <p className="text-sm font-semibold text-slate-200">{t("reportDetailPage.aiAnalysis")}</p>
               <p className="text-sm text-slate-400">{report.analysis.summary}</p>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">الجهة المسؤولة</span>
+                <span className="text-slate-500">{t("common.department")}</span>
                 <span className="font-medium text-slate-200">{report.analysis.department}</span>
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
-                  <span>نسبة الثقة</span>
+                  <span>{t("common.confidence")}</span>
                   <span className="font-mono">{confidencePct}%</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-white/10">
@@ -134,10 +129,10 @@ export function ReportDetailPage() {
 
         <div className="surface-panel rounded-xl border border-white/8 p-4">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            مسار الحالة
+            {t("reportDetailPage.statusTrail")}
           </p>
           {report.status === "closed" ? (
-            <p className="text-sm text-slate-400">تم إغلاق البلاغ بدون اعتباره محلولاً.</p>
+            <p className="text-sm text-slate-400">{t("reportDetailPage.closedNotice")}</p>
           ) : (
             <div className="flex items-start">
               {TRAIL.map((step, i) => (
@@ -155,7 +150,7 @@ export function ReportDetailPage() {
                         i <= stepIndex ? "text-slate-200" : "text-slate-600"
                       }`}
                     >
-                      {step.label}
+                      {t(step.labelKey)}
                     </span>
                   </div>
                   {i < TRAIL.length - 1 && (
@@ -175,7 +170,7 @@ export function ReportDetailPage() {
           <div className="surface-panel rounded-xl border border-accent-400/20 p-4">
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-accent-400">
               <Link2 size={13} />
-              الـ AI ربط البلاغ ده بـ {linkedReports.length} بلاغ تاني عن نفس المشكلة
+              {t("reportDetailPage.linkedNotice", { count: linkedReports.length })}
             </p>
             <div className="space-y-2">
               {linkedReports.map((r) => (
@@ -187,9 +182,9 @@ export function ReportDetailPage() {
                   <img src={r.imageDataUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-slate-200">
-                      {r.description || PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                      {r.description || problemTypeLabel(t, r.analysis.problemType)}
                     </p>
-                    <p className="truncate text-[10px] text-slate-500">{relativeTime(r.createdAt)}</p>
+                    <p className="truncate text-[10px] text-slate-500">{formatRelativeTime(r.createdAt, t)}</p>
                   </div>
                   <StatusBadge status={r.status} />
                 </Link>

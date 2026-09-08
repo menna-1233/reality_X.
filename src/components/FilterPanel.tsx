@@ -1,5 +1,6 @@
 import { Filter } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGlassPointer } from "../hooks/useGlassPointer";
 
 export interface FilterGroup {
@@ -17,6 +18,7 @@ export function FilterPanel({
   active: Record<string, string>;
   onChange: (key: string, value: string) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const activeCount = Object.values(active).filter((v) => v !== "all").length;
   const panelRef = useGlassPointer<HTMLDivElement>();
@@ -29,7 +31,7 @@ export function FilterPanel({
         className="surface-panel flex items-center gap-1.5 rounded-full border border-white/8 px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
       >
         <Filter size={14} />
-        فلترة
+        {t("filterPanel.filter")}
         {activeCount > 0 && (
           <span className="rounded-full bg-accent-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
             {activeCount}

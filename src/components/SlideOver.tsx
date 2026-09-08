@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export function SlideOver({
   open,
@@ -13,6 +14,7 @@ export function SlideOver({
   title: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
@@ -37,7 +39,7 @@ export function SlideOver({
               <button
                 onClick={onClose}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5"
-                aria-label="إغلاق"
+                aria-label={t("slideOver.close")}
               >
                 <X size={18} />
               </button>

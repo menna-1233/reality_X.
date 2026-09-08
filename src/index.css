@@ -47,6 +47,15 @@ html {
   color-scheme: dark;
 }
 
+/* IBM Plex Sans Arabic is tuned for Arabic script — its Latin companion
+   weights read noticeably heavier/narrower than a font designed Latin-first.
+   Swap to Inter for English so English text doesn't look "borrowed" from
+   the Arabic typeface. Keyed off the `dir` attribute src/i18n/config.ts
+   keeps in sync with the active language. */
+html[dir="ltr"] {
+  --font-sans: "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+}
+
 body {
   margin: 0;
   background: var(--color-ink-950);

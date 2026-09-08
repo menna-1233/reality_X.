@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 function useCountUp(target: number, durationMs = 600) {
   const prefersReduced = useReducedMotion();
@@ -49,7 +50,7 @@ export function StatTile({
   value,
   delta,
   deltaGoodDirection = "down",
-  baseline = "من الأسبوع الماضي",
+  baseline,
   children,
 }: {
   label: string;
@@ -61,10 +62,12 @@ export function StatTile({
   baseline?: string;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const isUp = (delta ?? 0) > 0;
   const isGood = delta === undefined ? null : (isUp ? "up" : "down") === deltaGoodDirection;
   const numeric = typeof value === "number";
   const animatedValue = useCountUp(numeric ? value : 0);
+  const resolvedBaseline = baseline ?? t("common.baselineLastWeek");
 
   return (
     <div className="surface-panel rounded-xl border border-white/8 p-3.5">
@@ -85,7 +88,7 @@ export function StatTile({
         {numeric ? animatedValue : value}
       </p>
       {children && <div className="mt-2">{children}</div>}
-      {delta !== undefined && <p className="mt-1 text-[10px] text-slate-500">{baseline}</p>}
+      {delta !== undefined && <p className="mt-1 text-[10px] text-slate-500">{resolvedBaseline}</p>}
     </div>
   );
 }

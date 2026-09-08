@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Form, UploadFile
 
+from ..mock_ai import Language
 from ..schemas import Analysis
 from ..settings import settings
 
@@ -12,6 +13,7 @@ router = APIRouter(tags=["analyze"])
 async def analyze_report(
     description: str = Form(default=""),
     image: Optional[UploadFile] = File(default=None),
+    language: Language = Form(default="ar"),
 ) -> Analysis:
     """Classify a reported issue.
 
@@ -29,12 +31,12 @@ async def analyze_report(
 
     if backend == "groq":
         from ..groq_ai import analyze
-        return analyze(description)
+        return analyze(description, language=language)
 
     if backend == "ollama":
         from ..ollama_ai import analyze
-        return analyze(description, image_bytes)
+        return analyze(description, image_bytes, language=language)
 
     # Default: mock keyword heuristic
     from ..mock_ai import analyze
-    return analyze(description)
+    return analyze(description, language=language)

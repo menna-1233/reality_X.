@@ -1,5 +1,6 @@
+import { useTranslation } from "react-i18next";
+import { statusLabel } from "../lib/labels";
 import type { ReportStatus } from "../types";
-import { STATUS_LABELS } from "../types";
 
 const COLOR: Record<ReportStatus, string> = {
   open: "var(--color-status-open)",
@@ -9,6 +10,7 @@ const COLOR: Record<ReportStatus, string> = {
 };
 
 export function StatusBadge({ status }: { status: ReportStatus }) {
+  const { t } = useTranslation();
   return (
     <span
       className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300"
@@ -18,7 +20,7 @@ export function StatusBadge({ status }: { status: ReportStatus }) {
         style={{ background: COLOR[status] }}
         aria-hidden="true"
       />
-      {STATUS_LABELS[status]}
+      {statusLabel(t, status)}
     </span>
   );
 }

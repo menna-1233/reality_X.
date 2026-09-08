@@ -1,5 +1,6 @@
+import { useTranslation } from "react-i18next";
+import { severityLabel } from "../lib/labels";
 import type { Severity } from "../types";
-import { SEVERITY_LABELS } from "../types";
 
 const COLOR: Record<Severity, string> = {
   low: "var(--color-severity-low)",
@@ -35,13 +36,14 @@ function SeverityMeter({ severity }: { severity: Severity }) {
 }
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
+  const { t } = useTranslation();
   return (
     <span
       className="inline-flex items-center gap-1.5 text-xs font-medium"
       style={{ color: COLOR[severity] }}
     >
       <SeverityMeter severity={severity} />
-      {SEVERITY_LABELS[severity]}
+      {severityLabel(t, severity)}
     </span>
   );
 }

@@ -1,5 +1,6 @@
 import { Camera, X } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   value: File | null;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function PhotoDropzone({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const previewUrl = useMemo(() => (value ? URL.createObjectURL(value) : null), [value]);
@@ -19,12 +21,12 @@ export function PhotoDropzone({ value, onChange }: Props) {
   if (previewUrl) {
     return (
       <div className="surface-panel relative overflow-hidden rounded-xl border border-white/8">
-        <img src={previewUrl} alt="الصورة المرفقة" className="h-56 w-full object-cover" />
+        <img src={previewUrl} alt={t("photoDropzone.imageAlt")} className="h-56 w-full object-cover" />
         <button
           type="button"
           onClick={() => onChange(null)}
           className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white"
-          aria-label="إزالة الصورة"
+          aria-label={t("photoDropzone.removePhoto")}
         >
           <X size={16} />
         </button>
@@ -39,7 +41,7 @@ export function PhotoDropzone({ value, onChange }: Props) {
       className="surface-panel flex h-56 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-accent-400/30 text-accent-400 transition hover:bg-white/[0.04]"
     >
       <Camera size={32} />
-      <span className="font-medium">اضغط لإضافة صورة المشكلة</span>
+      <span className="font-medium">{t("photoDropzone.addPhotoPrompt")}</span>
       <span className="text-xs text-accent-400/70">JPG, PNG</span>
       <input
         ref={inputRef}

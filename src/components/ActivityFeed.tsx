@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface ActivityItem {
   icon: LucideIcon;
@@ -8,8 +9,9 @@ export interface ActivityItem {
 }
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {
+  const { t } = useTranslation();
   if (items.length === 0) {
-    return <p className="py-4 text-center text-xs text-slate-500">لا يوجد نشاط بعد</p>;
+    return <p className="py-4 text-center text-xs text-slate-500">{t("activityFeed.noActivity")}</p>;
   }
   return (
     <div className="space-y-1">

@@ -58,22 +58,55 @@ const BASE_SEVERITY: Record<ProblemType, Severity> = {
 const SEVERITY_ORDER: Severity[] = ["low", "medium", "high", "critical"];
 const ESCALATION_KEYWORDS = ["خطر", "عاجل", "شديد", "urgent", "danger", "severe"];
 
-const DEPARTMENTS: Record<ProblemType, string> = {
-  pothole: "إدارة الصيانة والطرق",
-  garbage: "إدارة النظافة",
-  water_leak: "إدارة الصيانة والمرافق",
-  broken_light: "إدارة الكهرباء",
-  accident: "الأمن وإدارة الطوارئ",
-  other: "الإدارة العامة",
+type Language = "ar" | "en";
+
+const DEPARTMENTS: Record<Language, Record<ProblemType, string>> = {
+  ar: {
+    pothole: "إدارة الصيانة والطرق",
+    garbage: "إدارة النظافة",
+    water_leak: "إدارة الصيانة والمرافق",
+    broken_light: "إدارة الكهرباء",
+    accident: "الأمن وإدارة الطوارئ",
+    other: "الإدارة العامة",
+  },
+  en: {
+    pothole: "Roads & Maintenance Department",
+    garbage: "Sanitation Department",
+    water_leak: "Maintenance & Utilities Department",
+    broken_light: "Electrical Department",
+    accident: "Security & Emergency Response",
+    other: "General Administration",
+  },
 };
 
-const SUMMARIES: Record<ProblemType, string> = {
-  pothole: "تم رصد حفرة قد تشكل خطورة على السيارات والمشاة.",
-  garbage: "تم رصد تراكم للقمامة يحتاج إلى إزالة سريعة.",
-  water_leak: "تم رصد تسريب مياه قد يؤثر على البنية التحتية المحيطة.",
-  broken_light: "تم رصد عمود إنارة معطل يؤثر على الرؤية والأمان الليلي.",
-  accident: "تم رصد حادث يتطلب تدخلاً فورياً من فريق الطوارئ.",
-  other: "تم رصد مشكلة تحتاج إلى مراجعة الإدارة المختصة.",
+const SUMMARIES: Record<Language, Record<ProblemType, string>> = {
+  ar: {
+    pothole: "تم رصد حفرة قد تشكل خطورة على السيارات والمشاة.",
+    garbage: "تم رصد تراكم للقمامة يحتاج إلى إزالة سريعة.",
+    water_leak: "تم رصد تسريب مياه قد يؤثر على البنية التحتية المحيطة.",
+    broken_light: "تم رصد عمود إنارة معطل يؤثر على الرؤية والأمان الليلي.",
+    accident: "تم رصد حادث يتطلب تدخلاً فورياً من فريق الطوارئ.",
+    other: "تم رصد مشكلة تحتاج إلى مراجعة الإدارة المختصة.",
+  },
+  en: {
+    pothole: "A pothole was detected that may pose a risk to vehicles and pedestrians.",
+    garbage: "Garbage buildup was detected that needs prompt removal.",
+    water_leak: "A water leak was detected that may affect the surrounding infrastructure.",
+    broken_light: "A broken streetlight was detected, affecting visibility and nighttime safety.",
+    accident: "An accident was detected that requires immediate response from the emergency team.",
+    other: "An issue was detected that needs review by the relevant department.",
+  },
+};
+
+const URGENCY_SUFFIX: Record<Language, Record<"critical" | "high", string>> = {
+  ar: {
+    critical: " الحالة تصنّف كحرجة وتحتاج استجابة عاجلة.",
+    high: " الحالة ذات أولوية عالية.",
+  },
+  en: {
+    critical: " This is classified as critical and needs an urgent response.",
+    high: " This is high priority.",
+  },
 };
 
 function escalate(severity: Severity, steps = 1): Severity {
@@ -110,13 +143,13 @@ interface Analysis {
   summary: string;
 }
 
-function runMockAi(description: string): Analysis {
+function runMockAi(description: string, language: Language = "ar"): Analysis {
   const problemType = detectProblemType(description);
   const hasDescription = Boolean((description || "").trim());
   const severity = detectSeverity(problemType, description, hasDescription);
   let urgency = "";
-  if (severity === "critical") urgency = " الحالة تصنّف كحرجة وتحتاج استجابة عاجلة.";
-  else if (severity === "high") urgency = " الحالة ذات أولوية عالية.";
+  if (severity === "critical") urgency = URGENCY_SUFFIX[language].critical;
+  else if (severity === "high") urgency = URGENCY_SUFFIX[language].high;
 
   const confidence = Math.round(
     (hasDescription ? 0.82 + Math.random() * 0.15 : 0.55 + Math.random() * 0.17) * 100,
@@ -125,10 +158,14 @@ function runMockAi(description: string): Analysis {
   return {
     problem_type: problemType,
     severity,
-    department: DEPARTMENTS[problemType],
+    department: DEPARTMENTS[language][problemType],
     confidence,
-    summary: SUMMARIES[problemType] + urgency,
+    summary: SUMMARIES[language][problemType] + urgency,
   };
+}
+
+function parseLanguage(value: FormDataEntryValue | null): Language {
+  return value === "en" ? "en" : "ar";
 }
 
 // ---------------- incident grouping (port of app/incidents.py) ----------------
@@ -268,7 +305,8 @@ Deno.serve(async (req) => {
     if (path === "/analyze" && req.method === "POST") {
       const form = await req.formData();
       const description = String(form.get("description") ?? "");
-      return json(runMockAi(description));
+      const language = parseLanguage(form.get("language"));
+      return json(runMockAi(description, language));
     }
 
     if (parts[0] === "reports") {
@@ -283,6 +321,7 @@ Deno.serve(async (req) => {
         const latitude = latRaw != null && latRaw !== "" ? Number(latRaw) : null;
         const longitude = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : null;
         const communityId = String(form.get("community_id") ?? "") || DEFAULT_COMMUNITY_ID;
+        const language = parseLanguage(form.get("language"));
 
         const ext = (image.name || "photo.jpg").split(".").pop();
         const path_ = `${communityId}/${crypto.randomUUID()}.${ext}`;
@@ -294,7 +333,7 @@ Deno.serve(async (req) => {
         const { data: pub } = client.storage.from(BUCKET).getPublicUrl(path_);
         const imageUrl = pub.publicUrl;
 
-        const analysis = runMockAi(description);
+        const analysis = runMockAi(description, language);
 
         const incidentId = await findOrCreateIncident({
           communityId,
