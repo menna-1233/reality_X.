@@ -3,12 +3,15 @@ import "leaflet/dist/leaflet.css";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   Inbox,
+  Loader2,
   MapPinOff,
   RefreshCw,
   Search,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ActivityFeed } from "../components/ActivityFeed";
 import { AppShell } from "../components/AppShell";
@@ -17,11 +20,13 @@ import { EmptyState } from "../components/EmptyState";
 import { Gauge } from "../components/Gauge";
 import { Sparkline } from "../components/Sparkline";
 import { StatTile } from "../components/StatTile";
+import { apiExportReportsExcel } from "../lib/api";
 import { parseLatLng } from "../lib/geo";
 import { groupIntoIncidents } from "../lib/incidents";
+import { eventLabel, problemTypeLabel, severityLabel, statusLabel } from "../lib/labels";
 import { listRecentEvents, listReports } from "../lib/storage";
-import type { Report, Severity } from "../types";
-import { EVENT_LABELS, PROBLEM_TYPE_LABELS, SEVERITY_LABELS } from "../types";
+import { formatRelativeTime } from "../lib/time";
+import type { ProblemType, Report, Severity } from "../types";
 import { useGlassPointer } from "../hooks/useGlassPointer";
 
 const SEVERITY_COLOR: Record<Severity, string> = {
@@ -33,21 +38,12 @@ const SEVERITY_COLOR: Record<Severity, string> = {
 
 const DEFAULT_CENTER: [number, number] = [30.0596, 31.2295]; // fallback: Cairo-area compound
 
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  const days = Math.floor(hours / 24);
-  return `منذ ${days} يوم`;
-}
-
 export function DashboardPage() {
+  const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [search, setSearch] = useState("");
   const [dept, setDept] = useState<string>("all");
+  const [exporting, setExporting] = useState(false);
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
@@ -72,10 +68,10 @@ export function DashboardPage() {
     return reports.filter((r) => {
       if (dept !== "all" && r.analysis.department !== dept) return false;
       if (!q) return true;
-      const hay = `${r.description} ${r.location} ${PROBLEM_TYPE_LABELS[r.analysis.problemType]}`.toLowerCase();
+      const hay = `${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [reports, search, dept]);
+  }, [reports, search, dept, t]);
 
   const total = filtered.length;
   const criticalCount = filtered.filter((r) => r.analysis.severity === "critical").length;
@@ -111,8 +107,10 @@ export function DashboardPage() {
     const avgMs =
       open.reduce((sum, r) => sum + (Date.now() - new Date(r.createdAt).getTime()), 0) / open.length;
     const hours = avgMs / 3600000;
-    return hours < 24 ? `${hours.toFixed(1)} ساعة` : `${(hours / 24).toFixed(1)} يوم`;
-  }, [filtered]);
+    return hours < 24
+      ? t("dashboardPage.hoursUnit", { value: hours.toFixed(1) })
+      : t("dashboardPage.daysUnit", { value: (hours / 24).toFixed(1) });
+  }, [filtered, t]);
 
   const byType = useMemo(() => {
     const counts: Partial<Record<string, number>> = {};
@@ -136,11 +134,22 @@ export function DashboardPage() {
     [filtered],
   );
 
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await apiExportReportsExcel();
+    } catch (err) {
+      console.error("Excel export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const recentEvents = useMemo(() => listRecentEvents(reports, 6), [reports]);
   const activityItems = recentEvents.map(({ report, event }) => ({
     icon: event.kind === "status_changed" ? RefreshCw : event.kind === "analyzed" ? CheckCircle2 : Inbox,
-    title: `${PROBLEM_TYPE_LABELS[report.analysis.problemType]} — ${EVENT_LABELS[event.kind]}`,
-    time: relativeTime(event.at),
+    title: `${problemTypeLabel(t, report.analysis.problemType)} — ${eventLabel(t, event.kind)}`,
+    time: formatRelativeTime(event.at, t),
     tone:
       event.kind === "status_changed" && report.status === "resolved"
         ? ("success" as const)
@@ -192,6 +201,7 @@ export function DashboardPage() {
         }).addTo(layer);
       }
 
+      const dir = i18n.dir();
       L.circleMarker(latLng, {
         radius: 8,
         color: "#14110f",
@@ -200,10 +210,10 @@ export function DashboardPage() {
         fillOpacity: 0.95,
       })
         .bindPopup(
-          `<div style="font-family:Cairo,sans-serif;direction:rtl;min-width:160px">` +
-            `<b>${PROBLEM_TYPE_LABELS[r.analysis.problemType]}</b><br/>` +
+          `<div style="font-family:Cairo,sans-serif;direction:${dir};min-width:160px">` +
+            `<b>${problemTypeLabel(t, r.analysis.problemType)}</b><br/>` +
             `<span style="color:#94a3b8;font-size:12px">${r.location}</span><br/>` +
-            `<span style="font-size:12px">${SEVERITY_LABELS[r.analysis.severity]} · ${relativeTime(r.createdAt)}</span>` +
+            `<span style="font-size:12px">${severityLabel(t, r.analysis.severity)} · ${formatRelativeTime(r.createdAt, t)}</span>` +
             `</div>`,
         )
         .addTo(layer);
@@ -213,15 +223,17 @@ export function DashboardPage() {
     } else {
       map.setView(DEFAULT_CENTER, 15);
     }
-  }, [filtered]);
+    // i18n.language (not just t, whose identity is stable across languages) triggers a
+    // rebuild so popup labels + text direction follow a language switch.
+  }, [filtered, t, i18n, i18n.language]);
 
   return (
-    <AppShell title="نظرة عامة" breadcrumbs={["الإدارة"]}>
+    <AppShell title={t("nav.overview")} breadcrumbs={[t("nav.adminSection")]}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
             <Chip active={dept === "all"} onClick={() => setDept("all")}>
-              كل البلاغات
+              {t("common.allReports")}
             </Chip>
             {departments.map((d) => (
               <Chip key={d} active={dept === d} onClick={() => setDept(d)}>
@@ -234,41 +246,55 @@ export function DashboardPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="بحث في البلاغات..."
+              placeholder={t("common.searchPlaceholder")}
               className="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
             />
           </div>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="surface-panel flex items-center gap-1.5 rounded-lg border border-white/8 px-3.5 py-2 text-sm text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
+          >
+            {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {t("dashboardPage.exportExcel", { defaultValue: "تحميل Excel" })}
+          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_300px]">
           {/* left rail */}
           <div className="space-y-3 lg:order-1">
             <div className="grid grid-cols-2 gap-2">
-              <StatTile label="إجمالي البلاغات" value={total} delta={trendDelta} deltaGoodDirection="down" />
-              <StatTile label="بلاغات مرتبطة" value={linkedGroupsCount} />
-              <StatTile label="حرجة" value={criticalCount} />
-              <StatTile label="تم حلها" value={resolvedCount} />
+              <StatTile
+                label={t("dashboardPage.statTotal")}
+                value={total}
+                delta={trendDelta}
+                deltaGoodDirection="down"
+              />
+              <StatTile label={t("dashboardPage.statLinked")} value={linkedGroupsCount} />
+              <StatTile label={severityLabel(t, "critical")} value={criticalCount} />
+              <StatTile label={statusLabel(t, "resolved")} value={resolvedCount} />
             </div>
 
             <div ref={resolutionPanelRef} className="glass-surface relative flex items-center gap-3 rounded-xl border border-white/8 p-3.5">
               <Gauge pct={resolutionRate} color="var(--color-accent-500)" />
               <div className="min-w-0">
-                <p className="text-[11px] text-slate-400">نسبة الحل</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">من إجمالي البلاغات الحالية</p>
+                <p className="text-[11px] text-slate-400">{t("dashboardPage.resolutionRate")}</p>
+                <p className="mt-0.5 text-[10px] text-slate-500">{t("dashboardPage.resolutionRateCaption")}</p>
               </div>
             </div>
 
             <div ref={agePanelRef} className="glass-surface relative rounded-xl border border-white/8 p-3.5">
-              <p className="text-[11px] text-slate-400">متوسط عمر البلاغات المفتوحة</p>
+              <p className="text-[11px] text-slate-400">{t("dashboardPage.avgOpenAge")}</p>
               <p className="mt-1 font-mono text-2xl font-bold text-white">{avgOpenAgeLabel}</p>
               <div className="mt-2">
                 <Sparkline values={trend} color="var(--color-accent-400)" variant="bar" />
               </div>
-              <p className="mt-1 text-[10px] text-slate-500">بلاغات جديدة آخر ٧ أيام</p>
+              <p className="mt-1 text-[10px] text-slate-500">{t("dashboardPage.trendCaption")}</p>
             </div>
 
             <div ref={activityPanelRef} className="glass-surface relative space-y-1 rounded-xl border border-white/8 p-3">
-              <p className="mb-1 px-1 text-[11px] font-semibold text-slate-400">النشاط الأخير</p>
+              <p className="mb-1 px-1 text-[11px] font-semibold text-slate-400">{t("dashboardPage.recentActivity")}</p>
               <ActivityFeed items={activityItems} />
             </div>
           </div>
@@ -282,7 +308,7 @@ export function DashboardPage() {
             {unmappedCount > 0 && (
               <div className="surface-panel pointer-events-none absolute bottom-3 start-3 flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] text-slate-300">
                 <MapPinOff size={13} />
-                {unmappedCount} بلاغ بدون إحداثيات دقيقة
+                {unmappedCount} {t("dashboardPage.unmappedSuffix")}
               </div>
             )}
           </div>
@@ -292,10 +318,10 @@ export function DashboardPage() {
             <div ref={criticalPanelRef} className="glass-surface relative rounded-xl border border-severity-critical/20 p-3.5">
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
                 <AlertTriangle size={13} className="text-severity-critical" />
-                بلاغات حرجة مفتوحة ({criticalAlerts.length})
+                {t("dashboardPage.openCriticalAlerts")} ({criticalAlerts.length})
               </p>
               {criticalAlerts.length === 0 ? (
-                <p className="py-2 text-center text-xs text-slate-500">مفيش بلاغات حرجة مفتوحة دلوقتي 👍</p>
+                <p className="py-2 text-center text-xs text-slate-500">{t("dashboardPage.noCriticalAlerts")}</p>
               ) : (
                 <div className="space-y-2">
                   {criticalAlerts.map((r) => (
@@ -305,10 +331,10 @@ export function DashboardPage() {
                       className="block rounded-lg border-s-2 border-severity-critical bg-white/5 p-2 transition hover:bg-white/10"
                     >
                       <p className="truncate text-xs font-semibold text-slate-100">
-                        {PROBLEM_TYPE_LABELS[r.analysis.problemType]}
+                        {problemTypeLabel(t, r.analysis.problemType)}
                       </p>
                       <p className="truncate text-[10px] text-slate-500">
-                        {r.location} · {relativeTime(r.createdAt)}
+                        {r.location} · {formatRelativeTime(r.createdAt, t)}
                       </p>
                     </Link>
                   ))}
@@ -317,15 +343,15 @@ export function DashboardPage() {
             </div>
 
             <div ref={byTypePanelRef} className="glass-surface relative rounded-xl border border-white/8 p-3.5">
-              <p className="mb-2 text-[11px] font-semibold text-slate-400">البلاغات حسب نوع المشكلة</p>
+              <p className="mb-2 text-[11px] font-semibold text-slate-400">{t("dashboardPage.byType")}</p>
               {byType.length === 0 ? (
-                <EmptyState icon={Inbox} title="لا توجد بيانات" />
+                <EmptyState icon={Inbox} title={t("common.noData")} />
               ) : (
                 <div className="space-y-1.5">
                   {byType.map(([type, count]) => (
                     <div key={type} className="flex items-center gap-2 text-[11px]">
                       <span className="w-20 shrink-0 truncate text-slate-400">
-                        {PROBLEM_TYPE_LABELS[type as keyof typeof PROBLEM_TYPE_LABELS]}
+                        {problemTypeLabel(t, type as ProblemType)}
                       </span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
                         <div

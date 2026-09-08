@@ -23,5 +23,12 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
+    # Department email notifications (Gmail SMTP). See app/email_service.py.
+    smtp_enabled: bool = False
+    smtp_email: str = ""
+    smtp_app_password: str = ""
+    # Optional JSON override, e.g. {"pothole": "roads@city.gov"}
+    department_emails: str = ""
+
 
 settings = Settings()

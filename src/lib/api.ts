@@ -1,3 +1,4 @@
+import i18n from "../i18n/config";
 import { parseLatLng } from "./geo";
 import { getAdminAccessToken } from "./adminAuth";
 import type { Analysis, Report, ReportEvent, ReportStatus } from "../types";
@@ -119,6 +120,9 @@ export async function apiCreateReport({
   const form = new FormData();
   form.append("image", imageFile);
   form.append("description", description);
+  // Tells the backend's AI analysis (department/summary text) which language
+  // to respond in — see supabase/functions/urbaneye-api/index.ts.
+  form.append("language", i18n.language === "en" ? "en" : "ar");
 
   const latLng = parseLatLng(location);
   if (latLng) {
@@ -130,6 +134,26 @@ export async function apiCreateReport({
 
   const row = await request<ApiReport>("/reports", { method: "POST", body: form });
   return toFrontendReport(row);
+}
+
+/**
+ * Downloads all reports as an .xlsx spreadsheet and triggers a browser
+ * save-as. Backed by GET /reports/export/excel (see backend/app/excel_export.py).
+ */
+export async function apiExportReportsExcel(): Promise<void> {
+  const res = await fetch(`${API_BASE}/reports/export/excel`);
+  if (!res.ok) {
+    throw new Error(`Failed to export reports (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "urbaneye_reports.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /** Admin-only: changing a report's status requires a signed-in admin session. */
