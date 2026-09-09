@@ -89,6 +89,49 @@ body {
     0 24px 60px -12px rgba(0, 0, 0, 0.65);
 }
 
+/* Dashboard map (Leaflet + CARTO dark tiles) — override Leaflet's default
+   white-chrome UI (popups, zoom buttons, attribution) so it matches the
+   app's dark glass surfaces instead of clashing with them. */
+.leaflet-container {
+  background: var(--color-ink-900);
+  font-family: var(--font-sans);
+}
+.leaflet-popup-content-wrapper {
+  background: linear-gradient(175deg, var(--color-ink-800), var(--color-ink-850));
+  color: #e2e8f0;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+.leaflet-popup-tip {
+  background: var(--color-ink-850);
+}
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+}
+.leaflet-popup-close-button:hover {
+  color: #e2e8f0 !important;
+}
+.leaflet-control-zoom a {
+  background: var(--color-ink-800) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--color-ink-700) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(20, 17, 15, 0.72) !important;
+  color: #94a3b8 !important;
+}
+.leaflet-control-attribution a {
+  color: var(--color-accent-400) !important;
+}
+
 /* ── Liquid Glass ──────────────────────────────────────────────────────
    Apple's "Liquid Glass" material (WWDC 2025 / iOS 26 design language),
    adapted for the web: a translucent pane that lets content stay visible
@@ -187,24 +230,6 @@ body {
   .scroll-edge-fade {
     display: none;
   }
-}
-
-/* OSM raster tiles ship light by default — this repo's map always renders on
-   the dark ink background, so the tile layer gets an inverted/desaturated
-   filter to read as a dark basemap instead of a jarring light rectangle. */
-.map-tiles-dark {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.6);
-}
-
-/* Leaflet's default attribution control ships a light (near-white) pill —
-   glaring against the dark map/app background. Override to match the app's
-   ink palette instead of the light default. */
-.leaflet-control-attribution {
-  background: rgba(11, 9, 8, 0.7) !important;
-  color: #94a3b8 !important;
-}
-.leaflet-control-attribution a {
-  color: #cbd5e1 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
