@@ -17,7 +17,13 @@ class Settings(BaseSettings):
     # Ollama settings (only used when ai_backend="ollama")
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5vl:3b"
-    ollama_timeout_seconds: float = 60.0
+    # 60s is enough for warm calls but not for the first request after
+    # startup — a cold multimodal-model load on modest hardware can take
+    # 90-180s. If this times out, we silently fall back to the text-only
+    # keyword mock, which is exactly the description-trusting bug the app
+    # exists to avoid. 300s keeps cold starts alive; adjust down if your
+    # server is beefy.
+    ollama_timeout_seconds: float = 300.0
 
     # Groq settings (only used when ai_backend="groq")
     groq_api_key: str = ""

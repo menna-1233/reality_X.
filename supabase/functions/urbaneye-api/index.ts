@@ -166,6 +166,216 @@ function runMockAi(description: string, language: Language = "ar"): Analysis {
   };
 }
 
+// ---------------- real vision AI (Google Gemini multimodal) ----------------
+//
+// The mock above only reads the description text — that's why a photo of
+// a fire with the wrong words in the description got classified as
+// "water leak". This calls Google's free Gemini API with the actual
+// photo bytes so the model sees what the citizen submitted.
+//
+// Free tier (aistudio.google.com/apikey): 15 req/min, 1500 req/day for
+// gemini-2.0-flash — plenty for a hackathon demo. No credit card.
+//
+// Falls back to the mock on any failure (no key, quota exceeded, timeout,
+// bad JSON) so the app never breaks — but if you see a mock-shaped
+// summary in production, that's the tell that this path failed.
+
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+// gemini-3.6-flash is the current live default. gemini-2.0-flash was
+// deprecated by Google — a request to the retired model returns HTTP 404
+// with a message telling you which one to switch to, and that's the tell
+// that this default needs bumping again (Google retires flash models on
+// a ~yearly cadence). Override via env if you want a newer model, or a
+// slower/higher-quality one like gemini-3.6-pro.
+const GEMINI_VISION_MODEL =
+  Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-3.6-flash";
+
+const PROBLEM_TYPES: ProblemType[] = [
+  "pothole", "garbage", "water_leak", "broken_light", "accident", "other",
+];
+const SEVERITIES: Severity[] = ["low", "medium", "high", "critical"];
+
+const VISION_SYSTEM_PROMPT: Record<Language, string> = {
+  ar: `أنت نظام تصنيف بلاغات مشاكل مدينة (Smart City).
+
+الصورة المرفقة هي المصدر الوحيد المعتمد للتصنيف. وصف المواطن معلومة
+مساعدة بس (زي "المشكلة دي بقالها 3 أيام") ومش المرجع في تحديد نوع
+المشكلة — افترض إن الوصف ممكن يكون غلط أو مضلل، وحدد المشكلة من اللي
+شايفه في الصورة بالظبط. لو الوصف بيناقض الصورة، اعتمد على الصورة تمامًا.
+
+ارجع JSON فقط بدون أي نص إضافي، بالحقول دي بالترتيب ده:
+
+{
+  "photo_observation": "<جملتين بالعربية بتوصف اللي شايفه فعلياً في الصورة — ايه الأجسام والمشهد. اكتب ده الأول قبل أي حاجة، بناءً على الصورة نفسها بس>",
+  "matches_description": <true لو نوع المشكلة الظاهرة في الصورة من نفس فئة اللي بيوصفها المواطن، false بس لما تكون فئتين مختلفتين خالص. لو الوصف فاضي، ارجع true>,
+  "problem_type": "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other",
+  "severity": "low" | "medium" | "high" | "critical",
+  "confidence": <رقم عشري بين 0 و 1>,
+  "summary": "<ملخص قصير بالعربية عن الحالة بناءً على الصورة>"
+}
+
+problem_type لازم يطابق اللي في photo_observation، مش اللي في وصف المواطن.`,
+  en: `You are a Smart City issue-report classifier.
+
+The attached photo is the ONLY authoritative source for classification.
+The citizen's written description is auxiliary context only (details
+like "this has been leaking for 3 days") and is NOT the reference for
+identifying the problem type — assume the description may be wrong or
+misleading, and classify strictly by what you actually see in the
+photo. If the description contradicts the photo, disregard the
+description entirely.
+
+Return JSON only, no extra text, with these fields in this order:
+
+{
+  "photo_observation": "<one or two sentences describing what you actually see in the photo — objects, setting, condition. Write this FIRST, based on the image alone>",
+  "matches_description": <true if the problem type shown in the photo is the same category the citizen is describing, false ONLY when the categories are clearly different. If the description is empty, return true>,
+  "problem_type": "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other",
+  "severity": "low" | "medium" | "high" | "critical",
+  "confidence": <decimal 0-1>,
+  "summary": "<short summary in English of the condition based on the photo>"
+}
+
+problem_type MUST match what you described in photo_observation, NOT what
+the citizen's description says.`,
+};
+
+const MISMATCH_PREFIX: Record<Language, string> = {
+  ar: "⚠️ الصورة لا تطابق وصف المواطن — التصنيف مبني على الصورة. ",
+  en: "⚠️ Photo does not match the citizen's description — classified from the photo. ",
+};
+
+// deno-lint-ignore no-explicit-any
+function parseVisionJson(raw: string, description: string, language: Language): Analysis {
+  let text = raw.trim();
+  // strip ```json fences if the model wraps output
+  if (text.startsWith("```")) {
+    const inner = text.split("```")[1] ?? "";
+    text = inner.replace(/^json\s*/i, "").trim();
+  }
+  const data = JSON.parse(text) as Record<string, any>;
+
+  let problemType = data.problem_type as ProblemType;
+  if (!PROBLEM_TYPES.includes(problemType)) problemType = "other";
+
+  let severity = data.severity as Severity;
+  if (!SEVERITIES.includes(severity)) severity = "medium";
+
+  let confidence = Number(data.confidence);
+  if (!Number.isFinite(confidence)) confidence = 0.75;
+  confidence = Math.max(0, Math.min(1, confidence));
+
+  let summary = typeof data.summary === "string" && data.summary.trim()
+    ? data.summary
+    : SUMMARIES[language][problemType];
+
+  const hasDescription = Boolean((description || "").trim());
+  if (hasDescription && data.matches_description === false) {
+    // The model saw a photo-vs-description conflict — cap confidence and
+    // surface the discrepancy in the summary so admins spot it.
+    confidence = Math.min(confidence, 0.55);
+    if (!summary.startsWith("⚠️")) summary = MISMATCH_PREFIX[language] + summary;
+  }
+
+  return {
+    problem_type: problemType,
+    severity,
+    department: DEPARTMENTS[language][problemType],
+    confidence: Math.round(confidence * 100) / 100,
+    summary,
+  };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+async function runVisionAi(
+  description: string,
+  imageBytes: Uint8Array,
+  imageMime: string,
+  language: Language,
+): Promise<Analysis> {
+  if (!GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY not set — falling back to mock AI");
+    return runMockAi(description, language);
+  }
+
+  try {
+    const userPrefix = language === "ar" ? "وصف المواطن (معلومة مساعدة، ممكن تكون مش دقيقة):"
+                                          : "Citizen's description (auxiliary context, may be inaccurate):";
+    const noDesc = language === "ar" ? "بدون وصف" : "no description";
+    const promptText = VISION_SYSTEM_PROMPT[language] + "\n\n" +
+                       `${userPrefix} "${description || noDesc}"`;
+
+    // Gemini's native REST API: text + inline_data (base64 image) in one
+    // multimodal `contents` message, with responseMimeType forcing JSON.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_VISION_MODEL)}:generateContent`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: promptText },
+              {
+                inline_data: {
+                  mime_type: imageMime || "image/jpeg",
+                  data: bytesToBase64(imageBytes),
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+          // 512 was too tight — the model hit the cap mid-response and
+          // truncated the "confidence" number, breaking JSON.parse.
+          // 2048 gives plenty of room for photo_observation + Arabic
+          // summary + all fields without running short in practice.
+          maxOutputTokens: 2048,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 300)}`);
+    }
+    const body = await res.json();
+    const raw: string = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const finishReason: string = body?.candidates?.[0]?.finishReason ?? "";
+    if (!raw) throw new Error("Gemini returned empty content");
+    try {
+      return parseVisionJson(raw, description, language);
+    } catch (parseErr) {
+      // Log the raw model output so a future me can see WHY parsing failed —
+      // truncation from maxOutputTokens (finishReason=MAX_TOKENS), the model
+      // echoing back schema placeholders like <decimal 0-1> instead of a
+      // real value, or a rogue trailing comma. Falling back to mock, but
+      // with the diagnostic we need to fix the prompt or bump the limit.
+      console.error(
+        `Gemini JSON parse failed (finishReason=${finishReason}): ${parseErr}\nRaw output (first 800 chars): ${raw.slice(0, 800)}`,
+      );
+      throw parseErr;
+    }
+  } catch (err) {
+    console.error("Gemini vision analysis failed, falling back to mock:", err);
+    return runMockAi(description, language);
+  }
+}
+
 function parseLanguage(value: FormDataEntryValue | null): Language {
   return value === "en" ? "en" : "ar";
 }
@@ -546,6 +756,12 @@ Deno.serve(async (req) => {
       const form = await req.formData();
       const description = String(form.get("description") ?? "");
       const language = parseLanguage(form.get("language"));
+      const image = form.get("image") as File | null;
+      if (image) {
+        const bytes = new Uint8Array(await image.arrayBuffer());
+        return json(await runVisionAi(description, bytes, image.type || "image/jpeg", language));
+      }
+      // No image on /analyze — classify from description alone, mock-style.
       return json(runMockAi(description, language));
     }
 
@@ -612,7 +828,16 @@ Deno.serve(async (req) => {
         const { data: pub } = client.storage.from(BUCKET).getPublicUrl(path_);
         const imageUrl = pub.publicUrl;
 
-        const analysis = runMockAi(description, language);
+        // Real vision AI: the model sees the photo bytes and classifies from
+        // what's actually shown. Falls back to the text-only mock if the
+        // Gemini call fails or GEMINI_API_KEY isn't configured — but a
+        // mock-shaped result in production is the signal that vision failed.
+        const analysis = await runVisionAi(
+          description,
+          bytes,
+          image.type || "image/jpeg",
+          language,
+        );
 
         const incidentId = await findOrCreateIncident({
           communityId,
