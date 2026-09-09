@@ -26,7 +26,9 @@ export function FeedPage() {
   const [filter, setFilter] = useState<Severity | "all">("all");
 
   useEffect(() => {
-    listReports().then(setReports).catch(() => setReports([]));
+    listReports()
+      .then((all) => setReports(all.filter((r) => r.status !== "resolved" && r.status !== "closed")))
+      .catch(() => setReports([]));
   }, []);
 
   const counts = useMemo(() => {
