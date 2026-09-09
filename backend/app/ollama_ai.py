@@ -59,31 +59,70 @@ _DEPARTMENTS: dict[Language, dict[ProblemType, str]] = {
 }
 
 _PROMPT_TEMPLATE: dict[Language, str] = {
-    "ar": """أنت نظام تصنيف بلاغات مشاكل مدينة (Smart City). حلّل الصورة المرفقة
-(لو موجودة) والوصف المكتوب من المواطن، وارجع **JSON فقط** بدون أي نص أو شرح إضافي،
-بالشكل التالي بالضبط:
+    "ar": """أنت نظام تصنيف بلاغات مشاكل مدينة (Smart City).
+
+الصورة المرفقة هي المصدر الوحيد المعتمد للتصنيف. وصف المواطن معلومة مساعدة
+بس (زي "المشكلة دي بقالها 3 أيام") ومش المرجع في تحديد نوع المشكلة —
+افترض إن الوصف ممكن يكون غلط أو مضلل، وحدد المشكلة من اللي شايفه في الصورة
+بالظبط. لو الوصف بيناقض الصورة، اعتمد على الصورة تمامًا.
+
+ارجع **JSON فقط** بدون أي نص إضافي، بالحقول دي **بالترتيب ده**:
 
 {{
+  "photo_observation": "<جملتين بالعربية بتوصف اللي شايفه فعلياً في الصورة
+    — ايه الأجسام والمشهد. اكتب ده الأول قبل أي حاجة، وبناءً على الصورة
+    نفسها بس، من غير ما تبص على الوصف اللي تحت>",
+  "matches_description": <true لو نوع المشكلة الظاهرة في الصورة من نفس فئة
+    اللي بيوصفها المواطن (مثلاً: صورة حفرة + وصف يذكر حفرة/طريق = true،
+    حتى لو التفاصيل مش متطابقة بالظبط). false بس لما تكون فئتين مختلفتين
+    خالص (مثلاً: صورة حفرة + وصف نار/زبالة/تسريب مياه). لو الوصف فاضي أو
+    مش واضح، ارجع true>,
   "problem_type": "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other",
   "severity": "low" | "medium" | "high" | "critical",
-  "confidence": <رقم عشري بين 0 و 1>,
-  "summary": "<ملخص قصير بالعربية عن الحالة وخطورتها>"
+  "confidence": <رقم عشري بين 0 و 1 — عالي لو الصورة واضحة، منخفض لو مش
+    واضحة أو matches_description=false>,
+  "summary": "<ملخص قصير بالعربية عن الحالة بناءً على الصورة. لو الوصف
+    بيتعارض مع الصورة، وضّح ده في الملخص>"
 }}
 
-وصف المواطن للمشكلة: "{description}"
+problem_type لازم يطابق اللي في photo_observation، مش اللي في وصف المواطن.
+
+وصف المواطن (معلومة مساعدة، ممكن تكون مش دقيقة): "{description}"
 """,
-    "en": """You are a Smart City issue-report classifier. Analyze the attached photo
-(if present) and the citizen's written description, and return **JSON only**,
-with no extra text or explanation, in exactly this shape:
+    "en": """You are a Smart City issue-report classifier.
+
+The attached photo is the ONLY authoritative source for classification. The
+citizen's written description is auxiliary context only (details like "this
+has been leaking for 3 days") and is NOT the reference for identifying the
+problem type — assume the description may be wrong or misleading, and
+classify strictly by what you actually see in the photo. If the description
+contradicts the photo, disregard the description entirely.
+
+Return **JSON only**, no extra text, with these fields **in this order**:
 
 {{
+  "photo_observation": "<one or two sentences describing what you actually see
+    in the photo — objects, setting, condition. Write this FIRST, before
+    anything else, based on the image alone, without looking at the
+    description below>",
+  "matches_description": <true if the problem type shown in the photo is the
+    same category the citizen is describing (e.g. photo of a pothole +
+    description mentioning pothole/road damage = true, even if exact details
+    differ). Set false ONLY when the categories are clearly different
+    (e.g. photo of a pothole + description of fire/garbage/water leak). If
+    the description is empty or unclear, return true>,
   "problem_type": "pothole" | "garbage" | "water_leak" | "broken_light" | "accident" | "other",
   "severity": "low" | "medium" | "high" | "critical",
-  "confidence": <decimal number between 0 and 1>,
-  "summary": "<short summary in English of the issue and its severity>"
+  "confidence": <decimal 0-1 — high if photo is clear, low if unclear or
+    matches_description=false>,
+  "summary": "<short summary in English of the condition based on the photo.
+    If the description contradicts the photo, note that in the summary>"
 }}
 
-Citizen's description of the issue: "{description}"
+problem_type MUST match what you described in photo_observation, NOT what the
+citizen's description says.
+
+Citizen's description (auxiliary context, may be inaccurate): "{description}"
 """,
 }
 
@@ -108,7 +147,13 @@ def _build_payload(description: str, image_bytes: bytes | None, language: Langua
     return payload
 
 
-def _parse_response(raw_text: str, language: Language) -> Analysis:
+_MISMATCH_PREFIX: dict[Language, str] = {
+    "ar": "⚠️ الصورة لا تطابق وصف المواطن — التصنيف مبني على الصورة. ",
+    "en": "⚠️ Photo does not match the citizen's description — classified from the photo. ",
+}
+
+
+def _parse_response(raw_text: str, language: Language, has_description: bool) -> Analysis:
     data = json.loads(raw_text)
 
     problem_type = data.get("problem_type")
@@ -126,6 +171,16 @@ def _parse_response(raw_text: str, language: Language) -> Analysis:
         confidence = 0.75
 
     summary = data.get("summary") or _FALLBACK_SUMMARY[language]
+
+    # If a description was provided AND the model flagged the photo as not
+    # matching it, cap confidence (we know at least one signal is unreliable)
+    # and prepend a note to the summary so admins can see at a glance that
+    # this report wasn't a straightforward match. Skip when there's no
+    # description — the model has nothing to compare against there.
+    if has_description and data.get("matches_description") is False:
+        confidence = min(confidence, 0.55)
+        if not summary.startswith("⚠️"):
+            summary = _MISMATCH_PREFIX[language] + summary
 
     return Analysis(
         problem_type=problem_type,
@@ -154,7 +209,9 @@ def analyze(description: str, image_bytes: bytes | None = None, language: Langua
         )
         response.raise_for_status()
         raw_text = response.json()["response"]
-        return _parse_response(raw_text, language)
+        return _parse_response(
+            raw_text, language, has_description=bool((description or "").strip())
+        )
     except Exception:  # noqa: BLE001 - any failure should degrade gracefully
         logger.exception("Ollama analysis failed, falling back to mock AI")
         return run_mock_ai(description, language)
