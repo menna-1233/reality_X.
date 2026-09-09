@@ -181,10 +181,14 @@ function runMockAi(description: string, language: Language = "ar"): Analysis {
 // summary in production, that's the tell that this path failed.
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-// gemini-2.0-flash: 1500 free requests/day, fast, strong vision.
-// Override via env if you want 2.5-flash (better quality, tighter quota).
+// gemini-3.6-flash is the current live default. gemini-2.0-flash was
+// deprecated by Google — a request to the retired model returns HTTP 404
+// with a message telling you which one to switch to, and that's the tell
+// that this default needs bumping again (Google retires flash models on
+// a ~yearly cadence). Override via env if you want a newer model, or a
+// slower/higher-quality one like gemini-3.6-pro.
 const GEMINI_VISION_MODEL =
-  Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.0-flash";
+  Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-3.6-flash";
 
 const PROBLEM_TYPES: ProblemType[] = [
   "pothole", "garbage", "water_leak", "broken_light", "accident", "other",
@@ -336,7 +340,11 @@ async function runVisionAi(
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.2,
-          maxOutputTokens: 512,
+          // 512 was too tight — the model hit the cap mid-response and
+          // truncated the "confidence" number, breaking JSON.parse.
+          // 2048 gives plenty of room for photo_observation + Arabic
+          // summary + all fields without running short in practice.
+          maxOutputTokens: 2048,
         },
       }),
     });
@@ -347,8 +355,21 @@ async function runVisionAi(
     }
     const body = await res.json();
     const raw: string = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const finishReason: string = body?.candidates?.[0]?.finishReason ?? "";
     if (!raw) throw new Error("Gemini returned empty content");
-    return parseVisionJson(raw, description, language);
+    try {
+      return parseVisionJson(raw, description, language);
+    } catch (parseErr) {
+      // Log the raw model output so a future me can see WHY parsing failed —
+      // truncation from maxOutputTokens (finishReason=MAX_TOKENS), the model
+      // echoing back schema placeholders like <decimal 0-1> instead of a
+      // real value, or a rogue trailing comma. Falling back to mock, but
+      // with the diagnostic we need to fix the prompt or bump the limit.
+      console.error(
+        `Gemini JSON parse failed (finishReason=${finishReason}): ${parseErr}\nRaw output (first 800 chars): ${raw.slice(0, 800)}`,
+      );
+      throw parseErr;
+    }
   } catch (err) {
     console.error("Gemini vision analysis failed, falling back to mock:", err);
     return runMockAi(description, language);
@@ -809,7 +830,7 @@ Deno.serve(async (req) => {
 
         // Real vision AI: the model sees the photo bytes and classifies from
         // what's actually shown. Falls back to the text-only mock if the
-        // Groq call fails or GROQ_API_KEY isn't configured — but a
+        // Gemini call fails or GEMINI_API_KEY isn't configured — but a
         // mock-shaped result in production is the signal that vision failed.
         const analysis = await runVisionAi(
           description,
