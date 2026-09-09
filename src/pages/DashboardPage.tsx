@@ -193,13 +193,15 @@ export function DashboardPage() {
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 15);
-    // CARTO's dark basemap instead of CSS-inverting the standard OSM tiles —
-    // the invert filter left water/land hues wrong and text looking washed
-    // out; this is an actual dark-styled map, legible and not "off".
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: "abcd",
+    // CARTO's dark basemap now requires an API key even on the "free"
+    // basemaps subdomain, so it renders nothing but a watermark without one.
+    // Standard OSM tiles need no key and stay free — we CSS-invert them
+    // (see .dark-tiles in index.css) to keep the dark look.
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      subdomains: "abc",
       maxZoom: 19,
+      className: "dark-tiles",
     }).addTo(map);
     markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;

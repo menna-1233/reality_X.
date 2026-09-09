@@ -89,12 +89,17 @@ body {
     0 24px 60px -12px rgba(0, 0, 0, 0.65);
 }
 
-/* Dashboard map (Leaflet + CARTO dark tiles) — override Leaflet's default
+/* Dashboard map (Leaflet + OSM tiles) — override Leaflet's default
    white-chrome UI (popups, zoom buttons, attribution) so it matches the
    app's dark glass surfaces instead of clashing with them. */
 .leaflet-container {
   background: var(--color-ink-900);
   font-family: var(--font-sans);
+}
+/* OSM's standard tiles are light — CSS-invert them into a dark basemap
+   instead of relying on a paid/key-gated dark tile provider. */
+.dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
 }
 .leaflet-popup-content-wrapper {
   background: linear-gradient(175deg, var(--color-ink-800), var(--color-ink-850));
