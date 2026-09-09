@@ -75,7 +75,7 @@ export function FindingsPage() {
       if (filters.status !== "all" && r.status !== filters.status) return false;
       if (!q) return true;
       const hay =
-        `${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
+        `${r.id} ${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
       return hay.includes(q);
     });
   }, [reports, filters, search, t]);
