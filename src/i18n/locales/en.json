@@ -160,7 +160,7 @@
     "byType": "Reports by issue type"
   },
   "findingsPage": {
-    "kanban": "Kanban",
+    "kanban": "Board",
     "table": "Table",
     "noMatch": "No reports match this filter!",
     "clearFilters": "Clear filters",
