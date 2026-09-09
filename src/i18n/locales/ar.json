@@ -158,6 +158,7 @@
     "exportExcel": "تحميل Excel",
     "statTotal": "إجمالي البلاغات",
     "statLinked": "بلاغات مرتبطة",
+    "statLinkedCaption": "مجموعات فيها بلاغين أو أكتر عن نفس الحادثة",
     "resolutionRate": "نسبة الحل",
     "resolutionRateCaption": "من إجمالي البلاغات الحالية",
     "avgOpenAge": "متوسط عمر البلاغات المفتوحة",

@@ -9,7 +9,7 @@ import { useAdminSession } from "../lib/useAdminSession";
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const location = useLocation();
-  const status = useAdminSession();
+  const { status } = useAdminSession();
 
   if (status === "checking") {
     return (

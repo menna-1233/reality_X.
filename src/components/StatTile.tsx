@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Info } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -47,14 +47,20 @@ function useCountUp(target: number, durationMs = 600) {
 
 export function StatTile({
   label,
+  labelHint,
   value,
+  tone = "default",
   delta,
   deltaGoodDirection = "down",
   baseline,
   children,
 }: {
   label: string;
+  /** Optional native-tooltip text, shown via a small info icon next to the label. */
+  labelHint?: string;
   value: string | number;
+  /** Semantic value-text color — "critical"/"success" reuse the severity tokens; "default" (or omitted) stays neutral white. Never accent — accent is reserved for actions/active state. */
+  tone?: "critical" | "success" | "default";
   /** signed percentage change, e.g. 8 or -12 */
   delta?: number;
   /** which direction of change counts as "good" for this metric */
@@ -68,11 +74,20 @@ export function StatTile({
   const numeric = typeof value === "number";
   const animatedValue = useCountUp(numeric ? value : 0);
   const resolvedBaseline = baseline ?? t("common.baselineLastWeek");
+  const valueToneClass =
+    tone === "critical" ? "text-severity-critical" : tone === "success" ? "text-severity-low" : "text-white";
 
   return (
     <div className="surface-panel rounded-xl border border-white/8 p-3.5">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] text-slate-400">{label}</p>
+        <p className="flex items-center gap-1 text-[11px] text-slate-400">
+          {label}
+          {labelHint && (
+            <span title={labelHint}>
+              <Info size={12} className="text-slate-600" />
+            </span>
+          )}
+        </p>
         {delta !== undefined && (
           <span
             className={`flex items-center gap-0.5 text-[11px] font-semibold ${
@@ -84,7 +99,7 @@ export function StatTile({
           </span>
         )}
       </div>
-      <p className="mt-1 font-mono text-2xl font-bold text-white">
+      <p className={`mt-1 font-mono text-2xl font-bold ${valueToneClass}`}>
         {numeric ? animatedValue : value}
       </p>
       {children && <div className="mt-2">{children}</div>}

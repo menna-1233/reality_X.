@@ -146,6 +146,7 @@
     "exportExcel": "Download Excel",
     "statTotal": "Total reports",
     "statLinked": "Linked reports",
+    "statLinkedCaption": "Groups of 2+ reports about the same incident",
     "resolutionRate": "Resolution rate",
     "resolutionRateCaption": "Of all current reports",
     "avgOpenAge": "Average age of open reports",

@@ -99,7 +99,7 @@ export function ReportPage() {
 
   if (status === "done" && lastReport) {
     return (
-      <AppShell title={t("reportPage.resultTitle")} breadcrumbs={[t("nav.report")]}>
+      <AppShell title={t("reportPage.resultTitle")}>
         <div className="mx-auto max-w-lg space-y-4">
           <div className="surface-panel rounded-xl border border-accent-400/20 p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-accent-400">
@@ -145,7 +145,7 @@ export function ReportPage() {
   }
 
   return (
-    <AppShell title={t("reportPage.title")} breadcrumbs={[t("nav.report")]}>
+    <AppShell title={t("reportPage.title")}>
       <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4">
         <p className="text-sm text-slate-400">{t("reportPage.subtitle")}</p>
 
