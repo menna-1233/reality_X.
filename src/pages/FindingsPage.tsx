@@ -74,9 +74,10 @@ export function FindingsPage() {
       if (filters.severity !== "all" && r.analysis.severity !== filters.severity) return false;
       if (filters.status !== "all" && r.status !== filters.status) return false;
       if (!q) return true;
+      const qId = q.startsWith("#") ? q.slice(1) : q;
       const hay =
         `${r.id} ${r.description} ${r.location} ${problemTypeLabel(t, r.analysis.problemType)}`.toLowerCase();
-      return hay.includes(q);
+      return hay.includes(q) || (qId.length > 0 && r.id.toLowerCase().includes(qId));
     });
   }, [reports, filters, search, t]);
 

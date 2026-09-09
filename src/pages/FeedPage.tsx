@@ -1,4 +1,4 @@
-import { Inbox } from "lucide-react";
+import { Inbox, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,6 +24,7 @@ export function FeedPage() {
   const { t } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<Severity | "all">("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     listReports()
@@ -46,8 +47,18 @@ export function FeedPage() {
   );
   const criticalCount = counts.critical ?? 0;
 
-  const visible =
+  const bySeverity =
     filter === "all" ? reports : reports.filter((r) => r.analysis.severity === filter);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return bySeverity;
+    const qId = q.startsWith("#") ? q.slice(1) : q;
+    return bySeverity.filter((r) => {
+      const hay = `${r.id} ${r.description} ${r.location}`.toLowerCase();
+      return hay.includes(q) || (qId.length > 0 && r.id.toLowerCase().includes(qId));
+    });
+  }, [bySeverity, search]);
 
   const linkedLookup = useMemo(() => buildLinkedReportsLookup(reports), [reports]);
 
@@ -69,6 +80,18 @@ export function FeedPage() {
                 {t("feedPage.needsResponseToday")}
               </span>
             )}
+          </div>
+        )}
+
+        {reports.length > 0 && (
+          <div className="surface-panel flex items-center gap-2 rounded-lg border border-white/8 px-3.5 py-2 md:max-w-sm">
+            <Search size={15} className="text-slate-500" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("common.searchPlaceholder")}
+              className="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
+            />
           </div>
         )}
 
