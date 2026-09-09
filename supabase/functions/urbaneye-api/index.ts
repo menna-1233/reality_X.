@@ -166,22 +166,25 @@ function runMockAi(description: string, language: Language = "ar"): Analysis {
   };
 }
 
-// ---------------- real vision AI (Groq multimodal) ----------------
+// ---------------- real vision AI (Google Gemini multimodal) ----------------
 //
 // The mock above only reads the description text — that's why a photo of
 // a fire with the wrong words in the description got classified as
-// "water leak". This calls Groq's free multimodal API with the actual
+// "water leak". This calls Google's free Gemini API with the actual
 // photo bytes so the model sees what the citizen submitted.
+//
+// Free tier (aistudio.google.com/apikey): 15 req/min, 1500 req/day for
+// gemini-2.0-flash — plenty for a hackathon demo. No credit card.
 //
 // Falls back to the mock on any failure (no key, quota exceeded, timeout,
 // bad JSON) so the app never breaks — but if you see a mock-shaped
 // summary in production, that's the tell that this path failed.
 
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
-// llama-4-scout supports vision, is on Groq's free tier, and is fast enough
-// for a live report flow. Override via env if you want to try maverick etc.
-const GROQ_VISION_MODEL =
-  Deno.env.get("GROQ_VISION_MODEL") ?? "meta-llama/llama-4-scout-17b-16e-instruct";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+// gemini-2.0-flash: 1500 free requests/day, fast, strong vision.
+// Override via env if you want 2.5-flash (better quality, tighter quota).
+const GEMINI_VISION_MODEL =
+  Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.0-flash";
 
 const PROBLEM_TYPES: ProblemType[] = [
   "pothole", "garbage", "water_leak", "broken_light", "accident", "other",
@@ -294,51 +297,60 @@ async function runVisionAi(
   imageMime: string,
   language: Language,
 ): Promise<Analysis> {
-  if (!GROQ_API_KEY) {
-    console.warn("GROQ_API_KEY not set — falling back to mock AI");
+  if (!GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY not set — falling back to mock AI");
     return runMockAi(description, language);
   }
 
   try {
-    const dataUrl = `data:${imageMime || "image/jpeg"};base64,${bytesToBase64(imageBytes)}`;
     const userPrefix = language === "ar" ? "وصف المواطن (معلومة مساعدة، ممكن تكون مش دقيقة):"
                                           : "Citizen's description (auxiliary context, may be inaccurate):";
     const noDesc = language === "ar" ? "بدون وصف" : "no description";
+    const promptText = VISION_SYSTEM_PROMPT[language] + "\n\n" +
+                       `${userPrefix} "${description || noDesc}"`;
 
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Gemini's native REST API: text + inline_data (base64 image) in one
+    // multimodal `contents` message, with responseMimeType forcing JSON.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_VISION_MODEL)}:generateContent`;
+    const res = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "x-goog-api-key": GEMINI_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: GROQ_VISION_MODEL,
-        messages: [
+        contents: [
           {
             role: "user",
-            content: [
-              { type: "text", text: VISION_SYSTEM_PROMPT[language] + "\n\n" +
-                                    `${userPrefix} "${description || noDesc}"` },
-              { type: "image_url", image_url: { url: dataUrl } },
+            parts: [
+              { text: promptText },
+              {
+                inline_data: {
+                  mime_type: imageMime || "image/jpeg",
+                  data: bytesToBase64(imageBytes),
+                },
+              },
             ],
           },
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-        max_tokens: 512,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+          maxOutputTokens: 512,
+        },
       }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 300)}`);
+      throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 300)}`);
     }
     const body = await res.json();
-    const raw: string = body?.choices?.[0]?.message?.content ?? "";
-    if (!raw) throw new Error("Groq returned empty content");
+    const raw: string = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    if (!raw) throw new Error("Gemini returned empty content");
     return parseVisionJson(raw, description, language);
   } catch (err) {
-    console.error("Groq vision analysis failed, falling back to mock:", err);
+    console.error("Gemini vision analysis failed, falling back to mock:", err);
     return runMockAi(description, language);
   }
 }
